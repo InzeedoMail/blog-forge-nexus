@@ -25,19 +25,22 @@ export class BloggerService {
       );
       
       if (!response.ok) {
-        throw new Error(`API returned status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`API returned status: ${response.status}, message: ${errorData.error?.message || 'Unknown error'}`);
       }
       
       const data = await response.json();
       return data.items || [];
     } catch (error) {
       console.error("Error fetching posts from Blogger:", error);
-      throw new Error("Failed to fetch posts from Blogger");
+      throw error; // Propagate the original error for better debugging
     }
   }
 
   async createPost(post: BloggerPost) {
     try {
+      // For Blogger API v3, we need to use OAuth for write operations, not just API key
+      // But since we're using a simple integration, let's try with the API key first
       const response = await fetch(
         `https://www.googleapis.com/blogger/v3/blogs/${this.blogId}/posts?key=${this.apiKey}`,
         {
@@ -46,22 +49,27 @@ export class BloggerService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            kind: "blogger#post",
+            blog: {
+              id: this.blogId
+            },
             title: post.title,
             content: post.content,
-            labels: post.labels,
+            labels: post.labels || [],
           }),
         }
       );
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error details:", errorData);
         throw new Error(`API returned status: ${response.status}, message: ${errorData.error?.message || 'Unknown error'}`);
       }
       
       return await response.json();
     } catch (error) {
       console.error("Error creating post on Blogger:", error);
-      throw new Error("Failed to create post on Blogger");
+      throw error; // Propagate the original error for better debugging
     }
   }
 
@@ -79,22 +87,28 @@ export class BloggerService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            kind: "blogger#post",
+            id: post.id,
+            blog: {
+              id: this.blogId
+            },
             title: post.title,
             content: post.content,
-            labels: post.labels,
+            labels: post.labels || [],
           }),
         }
       );
       
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error details:", errorData);
         throw new Error(`API returned status: ${response.status}, message: ${errorData.error?.message || 'Unknown error'}`);
       }
       
       return await response.json();
     } catch (error) {
       console.error("Error updating post on Blogger:", error);
-      throw new Error("Failed to update post on Blogger");
+      throw error; // Propagate the original error for better debugging
     }
   }
 }

@@ -72,17 +72,27 @@ export class GoogleServiceFactory {
 
   getGoogleSheetsService() {
     if (this.googleApiKey && this.googleSheetId) {
-      // Directly import GoogleSheetsService using dynamic import
-      const { GoogleSheetsService } = require("./googleSheetsService");
-      return new GoogleSheetsService(this.googleApiKey, this.googleSheetId);
+      try {
+        // Dynamic import for GoogleSheetsService
+        const { GoogleSheetsService } = require("./googleSheetsService");
+        return new GoogleSheetsService(this.googleApiKey, this.googleSheetId);
+      } catch (error) {
+        console.error("Error initializing Google Sheets service:", error);
+        throw new Error("Failed to initialize Google Sheets service");
+      }
     }
     throw new Error("Google Sheets API key or Sheet ID not provided");
   }
 
   getBloggerService() {
     if (this.googleApiKey && this.bloggerBlogId) {
-      // Return a new instance of BloggerService
-      return new BloggerService(this.googleApiKey, this.bloggerBlogId);
+      try {
+        // Return a new instance of BloggerService directly (no require)
+        return new BloggerService(this.googleApiKey, this.bloggerBlogId);
+      } catch (error) {
+        console.error("Error initializing Blogger service:", error);
+        throw new Error("Failed to initialize Blogger service");
+      }
     }
     throw new Error("Google API key or Blogger Blog ID not provided");
   }
