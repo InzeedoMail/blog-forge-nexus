@@ -1,8 +1,15 @@
-
 import React from "react";
 import { GoogleLogin as ReactGoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { jwtDecode } from "jwt-decode";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { motion } from "framer-motion";
 
 const GoogleLogin: React.FC = () => {
@@ -25,7 +32,9 @@ const GoogleLogin: React.FC = () => {
           <CardContent>
             <div className="flex justify-center">
               <ReactGoogleLogin
-                onSuccess={login}
+                onSuccess={(item) => {
+                  login(item);
+                }}
                 onError={() => {
                   console.log("Login Failed");
                 }}

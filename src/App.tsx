@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,7 +22,7 @@ import NotFound from "@/pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
+  <GoogleOAuthProvider clientId="217614331285-4iik77mg1e12hnp7ofm1barm123gtmb7.apps.googleusercontent.com">
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CredentialsProvider>
@@ -33,7 +32,7 @@ const App = () => (
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<GoogleLogin />} />
-                
+
                 <Route
                   path="/"
                   element={
@@ -50,7 +49,7 @@ const App = () => (
                   <Route path="blogger" element={<Blogger />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>
-                
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

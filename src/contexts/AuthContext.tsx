@@ -1,6 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { jwtDecode } from "jwt-decode";
 
 interface User {
   email: string;
@@ -13,16 +13,18 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (response: any) => void;
+  login: (response) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // The email that is allowed to access the application
-const ALLOWED_EMAIL = "myemail@gmail.com"; // Replace with your actual email
+const ALLOWED_EMAIL = "inzeedomail@gmail.com"; // Replace with your actual email
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -42,11 +44,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
-  const login = (response: any) => {
+  const login = (response) => {
     try {
       // Extract user info from Google response
-      const { email, name, picture } = response.profileObj;
-      const token = response.tokenId;
+      console.log(response);
+      const decodeddata = jwtDecode(response.credential);
+
+      const { email, name, picture } = decodeddata;
+      const token = response.credential;
 
       // Verify if the user's email is allowed
       if (email !== ALLOWED_EMAIL) {
