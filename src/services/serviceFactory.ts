@@ -1,5 +1,6 @@
 
 import { OpenAIService } from "./openaiService";
+import { BloggerService } from "./bloggerService";
 // We'll add more imports as we implement other AI services
 // import { GeminiService } from "./geminiService";
 
@@ -71,6 +72,7 @@ export class GoogleServiceFactory {
 
   getGoogleSheetsService() {
     if (this.googleApiKey && this.googleSheetId) {
+      // Directly import GoogleSheetsService using ES module syntax
       const { GoogleSheetsService } = require("./googleSheetsService");
       return new GoogleSheetsService(this.googleApiKey, this.googleSheetId);
     }
@@ -79,7 +81,7 @@ export class GoogleServiceFactory {
 
   getBloggerService() {
     if (this.googleApiKey && this.bloggerBlogId) {
-      const { BloggerService } = require("./bloggerService");
+      // Use the already imported BloggerService instead of require
       return new BloggerService(this.googleApiKey, this.bloggerBlogId);
     }
     throw new Error("Google API key or Blogger Blog ID not provided");

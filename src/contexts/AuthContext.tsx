@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { jwtDecode } from "jwt-decode";
@@ -7,6 +8,14 @@ interface User {
   name: string;
   picture: string;
   token: string;
+}
+
+// Define the expected JWT payload structure
+interface GoogleJwtPayload {
+  email: string;
+  name: string;
+  picture: string;
+  [key: string]: any; // For other properties that might be in the token
 }
 
 interface AuthContextType {
@@ -48,9 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       // Extract user info from Google response
       console.log(response);
-      const decodeddata = jwtDecode(response.credential);
+      const decodedData = jwtDecode<GoogleJwtPayload>(response.credential);
 
-      const { email, name, picture } = decodeddata;
+      const { email, name, picture } = decodedData;
       const token = response.credential;
 
       // Verify if the user's email is allowed
