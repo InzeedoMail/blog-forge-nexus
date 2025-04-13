@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useCredentials } from "@/contexts/CredentialsContext";
@@ -8,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AIServiceFactory } from "@/services/serviceFactory";
+import { AIServiceFactory, GoogleServiceFactory } from "@/services/serviceFactory";
 import { Loader2, FileText, ImageIcon, Upload, Send } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -129,20 +128,119 @@ const Editor = () => {
     }
   };
   
-  const saveToSheets = async () => {
-    // This will be implemented when we build the full Google Sheets integration
-    toast({
-      title: "Save to Sheets",
-      description: "This feature will be implemented in the next version.",
-    });
+  const publishToBlogger = async () => {
+    if (!generatedContent.title || !generatedContent.body) {
+      toast({
+        title: "Content required",
+        description: "Please generate or enter content before publishing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!credentials.googleApiKey || !credentials.bloggerBlogId) {
+      toast({
+        title: "API credentials missing",
+        description: "Please add your Google API key and Blogger Blog ID in Settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsGenerating(true);
+    
+    try {
+      const googleFactory = new GoogleServiceFactory(
+        credentials.googleApiKey,
+        credentials.googleSheetId,
+        credentials.bloggerBlogId
+      );
+      
+      const bloggerService = googleFactory.getBloggerService();
+      
+      await bloggerService.createPost({
+        title: generatedContent.title,
+        content: generatedContent.body + (
+          generatedContent.imageUrl 
+            ? `<p><img src="${generatedContent.imageUrl}" alt="${generatedContent.title}" /></p>` 
+            : ""
+        ),
+        labels: ["ai-generated"]
+      });
+      
+      toast({
+        title: "Published to Blogger",
+        description: "Your post has been published to your Blogger blog successfully!",
+      });
+      
+      if (credentials.googleApiKey && credentials.googleSheetId) {
+        saveToSheets();
+      }
+    } catch (error) {
+      console.error("Error publishing to Blogger:", error);
+      toast({
+        title: "Publishing failed",
+        description: error instanceof Error ? error.message : "Failed to publish to Blogger. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
   
-  const publishToBlogger = async () => {
-    // This will be implemented when we build the full Blogger integration
-    toast({
-      title: "Publish to Blogger",
-      description: "This feature will be implemented in the next version.",
-    });
+  const saveToSheets = async () => {
+    if (!generatedContent.title || !generatedContent.body) {
+      toast({
+        title: "Content required",
+        description: "Please generate or enter content before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!credentials.googleApiKey || !credentials.googleSheetId) {
+      toast({
+        title: "API credentials missing",
+        description: "Please add your Google API key and Google Sheet ID in Settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsGenerating(true);
+    
+    try {
+      const googleFactory = new GoogleServiceFactory(
+        credentials.googleApiKey,
+        credentials.googleSheetId,
+        credentials.bloggerBlogId
+      );
+      
+      const sheetsService = googleFactory.getGoogleSheetsService();
+      
+      await sheetsService.savePost({
+        title: generatedContent.title,
+        body: generatedContent.body,
+        imageUrl: generatedContent.imageUrl,
+        tags: ["ai-generated"],
+        date: new Date().toISOString(),
+        status: "published"
+      });
+      
+      toast({
+        title: "Saved to Google Sheets",
+        description: "Your content has been saved to Google Sheets successfully!",
+      });
+    } catch (error) {
+      console.error("Error saving to Google Sheets:", error);
+      toast({
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Failed to save to Google Sheets. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -240,7 +338,7 @@ const Editor = () => {
                 <Button
                   variant="outline"
                   onClick={saveToSheets}
-                  disabled={!generatedContent.title || !generatedContent.body}
+                  disabled={isGenerating || !generatedContent.title || !generatedContent.body}
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   Save to Sheets
@@ -249,7 +347,7 @@ const Editor = () => {
                 <Button
                   variant="outline"
                   onClick={publishToBlogger}
-                  disabled={!generatedContent.title || !generatedContent.body}
+                  disabled={isGenerating || !generatedContent.title || !generatedContent.body}
                 >
                   <Send className="mr-2 h-4 w-4" />
                   Publish
