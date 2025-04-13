@@ -72,7 +72,7 @@ export class GoogleServiceFactory {
 
   getGoogleSheetsService() {
     if (this.googleApiKey && this.googleSheetId) {
-      // Directly import GoogleSheetsService using ES module syntax
+      // Directly import GoogleSheetsService using dynamic import
       const { GoogleSheetsService } = require("./googleSheetsService");
       return new GoogleSheetsService(this.googleApiKey, this.googleSheetId);
     }
@@ -81,7 +81,7 @@ export class GoogleServiceFactory {
 
   getBloggerService() {
     if (this.googleApiKey && this.bloggerBlogId) {
-      // Use the already imported BloggerService instead of require
+      // Return a new instance of BloggerService
       return new BloggerService(this.googleApiKey, this.bloggerBlogId);
     }
     throw new Error("Google API key or Blogger Blog ID not provided");

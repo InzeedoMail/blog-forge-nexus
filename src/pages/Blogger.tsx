@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useCredentials } from "@/contexts/CredentialsContext";
@@ -33,7 +32,6 @@ const Blogger = () => {
     credentials.googleApiKey && credentials.bloggerBlogId
   );
 
-  // Query to fetch posts
   const {
     data: posts,
     isLoading,
@@ -53,7 +51,17 @@ const Blogger = () => {
           credentials.bloggerBlogId
         );
         const bloggerService = serviceFactory.getBloggerService();
-        return await bloggerService.getPosts();
+        const fetchedPosts = await bloggerService.getPosts();
+        
+        return fetchedPosts.map((post: any) => ({
+          id: post.id,
+          title: post.title || '',
+          content: post.content || '',
+          labels: post.labels || [],
+          url: post.url,
+          published: post.published,
+          updated: post.updated,
+        }));
       } catch (error) {
         console.error("Error fetching Blogger posts:", error);
         throw new Error("Failed to fetch posts from Blogger");
@@ -62,7 +70,6 @@ const Blogger = () => {
     enabled: hasBloggerCredentials,
   });
 
-  // Mutation to create new post
   const createPostMutation = useMutation({
     mutationFn: async (post: BloggerPost) => {
       if (!hasBloggerCredentials) {
@@ -95,7 +102,6 @@ const Blogger = () => {
     },
   });
 
-  // Mutation to update post
   const updatePostMutation = useMutation({
     mutationFn: async (post: BloggerPost) => {
       if (!hasBloggerCredentials) {
