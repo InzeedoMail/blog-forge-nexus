@@ -22,8 +22,9 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (response) => void;
+  login: (response: any) => void;
   logout: () => void;
+  getAccessToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsLoading(false);
   }, []);
 
-  const login = (response) => {
+  const login = (response: any) => {
     try {
       // Extract user info from Google response
       console.log(response);
@@ -111,6 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
+  // Helper function to get the access token
+  const getAccessToken = (): string | null => {
+    return localStorage.getItem("accessToken");
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -119,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isAuthenticated: !!user,
         login,
         logout,
+        getAccessToken,
       }}
     >
       {children}

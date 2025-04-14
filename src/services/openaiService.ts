@@ -21,6 +21,41 @@ interface FormattedContentResponse {
   }
 }
 
+interface ParaphraseOptions {
+  text: string;
+  language: "english" | "tamil";
+  toneStyle?: string;
+  preserveKeywords?: boolean;
+  outputFormat?: "text" | "html";
+}
+
+interface GrammarCheckOptions {
+  text: string;
+  language: "english" | "tamil";
+  detailedFeedback?: boolean;
+}
+
+interface GrammarCheckResponse {
+  correctedText: string;
+  issues: {
+    original: string;
+    suggested: string;
+    reason: string;
+    type: "grammar" | "spelling" | "punctuation" | "style";
+  }[];
+  score: number;
+}
+
+interface ArticleMetadata {
+  wordCount: number;
+  readingTime: number;
+  seoScore: number;
+  readabilityScore: number;
+  keywordsFrequency: Record<string, number>;
+  titleSeoScore: number;
+  languageDetected: string;
+}
+
 export class OpenAIService {
   private openai: OpenAIApi;
 
@@ -50,23 +85,19 @@ export class OpenAIService {
         long: "1500-3000",
       };
   
-      // Build a comprehensive prompt based on all options
       const systemPrompt = `You are a professional content writer who specializes in creating well-formatted, engaging ${contentType} content.`;
       
       let userPrompt = `Write a high-quality, engaging ${contentType} about "${topic}". 
       The content should be ${wordCount[length]} words long and target a ${audience} audience with a ${tone} tone.`;
       
-      // Add SEO keywords if provided
       if (seoKeywords.length > 0) {
         userPrompt += `\nOptimize for these SEO keywords: ${seoKeywords.join(", ")}.`;
       }
       
-      // Add country-specific SEO if not global
       if (seoCountry !== "global") {
         userPrompt += `\nOptimize content specifically for ${seoCountry} readers and SEO.`;
       }
       
-      // Structure requirements
       userPrompt += `\nThe content should include:
       - An attention-grabbing headline (as an H1 at the top)
       - An engaging introduction that hooks the reader
@@ -76,7 +107,6 @@ export class OpenAIService {
       - Clear transitions between sections
       - A conclusion with a call to action`;
       
-      // Format instructions
       if (includeHtml) {
         userPrompt += `\nFormat the output with proper HTML tags for headings, paragraphs, lists, etc.`;
       } else {
@@ -98,7 +128,6 @@ export class OpenAIService {
       
       Format the main content properly with appropriate spacing between paragraphs and sections. Do not wrap the response in JSON or code blocks.`;
   
-      // Use createChatCompletion with separating the main content from SEO info
       const response = await this.openai.createChatCompletion({
         model: "gpt-4o-mini",
         messages: [
@@ -110,37 +139,31 @@ export class OpenAIService {
   
       const fullText = response.data.choices[0]?.message?.content || "";
       
-      // Split the content and metadata
       let content = fullText;
       let seoDescription = "";
       let extractedKeywords: string[] = [];
       let targetAudience = audience;
       let finalContentType = contentType;
       
-      // Check if there's metadata at the end and extract it
       if (fullText.includes("SEO DESCRIPTION:")) {
         const mainContentEndIndex = fullText.indexOf("SEO DESCRIPTION:");
         content = fullText.substring(0, mainContentEndIndex).trim();
         
-        // Extract SEO description
         const seoDescMatch = fullText.match(/SEO DESCRIPTION:(.*?)(?=SEO KEYWORDS:|TARGET AUDIENCE:|CONTENT TYPE:|$)/s);
         if (seoDescMatch && seoDescMatch[1]) {
           seoDescription = seoDescMatch[1].trim();
         }
         
-        // Extract SEO keywords
         const seoKeywordsMatch = fullText.match(/SEO KEYWORDS:(.*?)(?=TARGET AUDIENCE:|CONTENT TYPE:|$)/s);
         if (seoKeywordsMatch && seoKeywordsMatch[1]) {
           extractedKeywords = seoKeywordsMatch[1].trim().split(/,\s*/);
         }
         
-        // Extract target audience
         const targetAudienceMatch = fullText.match(/TARGET AUDIENCE:(.*?)(?=CONTENT TYPE:|$)/s);
         if (targetAudienceMatch && targetAudienceMatch[1]) {
           targetAudience = targetAudienceMatch[1].trim();
         }
         
-        // Extract content type
         const contentTypeMatch = fullText.match(/CONTENT TYPE:(.*?)$/s);
         if (contentTypeMatch && contentTypeMatch[1]) {
           finalContentType = contentTypeMatch[1].trim();
@@ -159,6 +182,203 @@ export class OpenAIService {
     } catch (error) {
       console.error("Error generating blog post with OpenAI:", error);
       throw new Error("Failed to generate content with OpenAI");
+    }
+  }
+
+  async paraphraseContent(options: ParaphraseOptions): Promise<string> {
+    try {
+      const { 
+        text, 
+        language = "english",
+        toneStyle = "professional",
+        preserveKeywords = true,
+        outputFormat = "html"
+      } = options;
+      
+      if (!text || text.trim().length === 0) {
+        throw new Error("No text provided for paraphrasing");
+      }
+
+      const systemPrompt = language === "english"
+        ? `You are an expert paraphrasing assistant with excellent command of English. 
+          Paraphrase the provided text while maintaining its meaning and key points.`
+        : `You are an expert in Tamil language with excellent paraphrasing skills.
+          Paraphrase the provided Tamil text while maintaining its meaning and key points.`;
+      
+      let userPrompt = `Paraphrase the following ${language} text in a ${toneStyle} tone.`;
+      
+      if (preserveKeywords) {
+        userPrompt += " Preserve important keywords, names, and technical terms.";
+      }
+      
+      if (outputFormat === "html") {
+        userPrompt += " Format the output with proper HTML tags for paragraphs, headings, and lists.";
+      }
+      
+      userPrompt += `\n\nOriginal text:\n${text}`;
+      
+      const response = await this.openai.createChatCompletion({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.7,
+      });
+      
+      return response.data.choices[0]?.message?.content || "Failed to paraphrase content";
+    } catch (error) {
+      console.error("Error paraphrasing content:", error);
+      throw new Error("Failed to paraphrase content with OpenAI");
+    }
+  }
+
+  async checkGrammar(options: GrammarCheckOptions): Promise<GrammarCheckResponse> {
+    try {
+      const { 
+        text, 
+        language = "english",
+        detailedFeedback = true
+      } = options;
+      
+      if (!text || text.trim().length === 0) {
+        throw new Error("No text provided for grammar checking");
+      }
+
+      const systemPrompt = language === "english"
+        ? `You are an expert grammar and language correction assistant with excellent command of English.
+          Provide corrections and improvements to the given text.`
+        : `You are an expert in Tamil language grammar and style.
+          Provide corrections and improvements to the given Tamil text.`;
+      
+      const userPrompt = `Review the following ${language} text for grammar, spelling, punctuation, and style errors. 
+      ${detailedFeedback ? 'Provide detailed feedback for each issue found.' : 'Provide a brief summary of issues.'}
+      
+      Return your response in the following JSON format:
+      {
+        "correctedText": "The full corrected text",
+        "issues": [
+          {
+            "original": "original text with error",
+            "suggested": "suggested correction",
+            "reason": "brief explanation of correction",
+            "type": "grammar/spelling/punctuation/style"
+          }
+        ],
+        "score": 85 (a number from 0-100 representing overall language quality)
+      }
+      
+      Text to check:
+      ${text}`;
+      
+      const response = await this.openai.createChatCompletion({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.3,
+      });
+      
+      const responseContent = response.data.choices[0]?.message?.content || '';
+      
+      try {
+        const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0]) as GrammarCheckResponse;
+        }
+        
+        return {
+          correctedText: text,
+          issues: [],
+          score: 100
+        };
+      } catch (jsonError) {
+        console.error("Error parsing grammar check response:", jsonError);
+        return {
+          correctedText: text,
+          issues: [{
+            original: "",
+            suggested: "",
+            reason: "Failed to process response",
+            type: "grammar"
+          }],
+          score: 0
+        };
+      }
+    } catch (error) {
+      console.error("Error checking grammar:", error);
+      throw new Error("Failed to check grammar with OpenAI");
+    }
+  }
+
+  async analyzeArticleMetadata(text: string, title: string): Promise<ArticleMetadata> {
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    const readingTime = Math.ceil(wordCount / 200);
+    
+    try {
+      const systemPrompt = `You are an expert content analyst specializing in SEO and readability.`;
+      
+      const userPrompt = `Analyze this article title and content for SEO and readability metrics.
+      Return your analysis in the following JSON format:
+      {
+        "seoScore": 85,
+        "readabilityScore": 80,
+        "keywordsFrequency": {"keyword1": 5, "keyword2": 3},
+        "titleSeoScore": 75,
+        "languageDetected": "english or tamil"
+      }
+      
+      Title: ${title}
+      
+      Content: ${text.substring(0, 2000)}${text.length > 2000 ? "..." : ""}`;
+      
+      const response = await this.openai.createChatCompletion({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.3,
+      });
+      
+      const responseContent = response.data.choices[0]?.message?.content || '';
+      
+      try {
+        const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const aiAnalysis = JSON.parse(jsonMatch[0]);
+          return {
+            wordCount,
+            readingTime,
+            ...aiAnalysis
+          };
+        }
+      } catch (jsonError) {
+        console.error("Error parsing metadata analysis response:", jsonError);
+      }
+      
+      return {
+        wordCount,
+        readingTime,
+        seoScore: 0,
+        readabilityScore: 0,
+        keywordsFrequency: {},
+        titleSeoScore: 0,
+        languageDetected: text.match(/[\u0B80-\u0BFF]/) ? "tamil" : "english"
+      };
+    } catch (error) {
+      console.error("Error analyzing article metadata:", error);
+      
+      return {
+        wordCount,
+        readingTime,
+        seoScore: 0,
+        readabilityScore: 0,
+        keywordsFrequency: {},
+        titleSeoScore: 0,
+        languageDetected: text.match(/[\u0B80-\u0BFF]/) ? "tamil" : "english"
+      };
     }
   }
 
