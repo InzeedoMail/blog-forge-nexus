@@ -1,13 +1,18 @@
-
 import React from "react";
-import { 
-  Home, Settings, FileText, Image, History, 
-  LogOut, Database, Send 
+import {
+  Home,
+  Settings,
+  FileText,
+  Image,
+  History,
+  LogOut,
+  Database,
+  Send,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -27,12 +32,18 @@ interface SidebarLinkProps {
   isActive: boolean;
 }
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ 
-  to, icon: Icon, children, isActive 
+const SidebarLink: React.FC<SidebarLinkProps> = ({
+  to,
+  icon: Icon,
+  children,
+  isActive,
 }) => {
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild className={isActive ? "bg-sidebar-accent" : ""}>
+      <SidebarMenuButton
+        asChild
+        className={isActive ? "bg-sidebar-accent" : ""}
+      >
         <Link to={to} className="flex items-center gap-3">
           <Icon className="h-5 w-5" />
           <span>{children}</span>
@@ -61,7 +72,12 @@ const AppSidebar: React.FC = () => {
   const navLinks = [
     { path: "/", icon: Home, label: "Dashboard" },
     { path: "/editor", icon: FileText, label: "Editor" },
-    { path: "/images", icon: Image, label: "Image Generator" },
+    {
+      path: "/article-paraphraser",
+      icon: FileText,
+      label: "Article Paraphraser",
+    },
+    { path: "/image-generator", icon: Image, label: "Image Generator" },
     { path: "/history", icon: History, label: "Post History" },
     { path: "/sheets", icon: Database, label: "Google Sheets" },
     { path: "/blogger", icon: Send, label: "Blogger" },
@@ -83,7 +99,7 @@ const AppSidebar: React.FC = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               {navLinks.map((link) => (
-                <SidebarLink 
+                <SidebarLink
                   key={link.path}
                   to={link.path}
                   icon={link.icon}
@@ -101,16 +117,18 @@ const AppSidebar: React.FC = () => {
         <div className="px-4 py-2 flex items-center gap-3">
           {user && (
             <>
-              <img 
-                src={user.picture} 
-                alt={user.name} 
-                className="w-8 h-8 rounded-full" 
+              <img
+                src={user.picture}
+                alt={user.name}
+                className="w-8 h-8 rounded-full"
               />
               <div className="flex-1 overflow-hidden">
                 <p className="font-medium text-sm truncate">{user.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user.email}
+                </p>
               </div>
-              <button 
+              <button
                 onClick={logout}
                 className="p-2 rounded-full hover:bg-sidebar-accent"
                 aria-label="Logout"

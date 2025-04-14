@@ -1,12 +1,12 @@
-
-import React from "react";
+import React, { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Outlet } from "react-router-dom";
 import AppSidebar from "./Sidebar";
-import { 
-  SidebarProvider, 
-  SidebarTrigger 
-} from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+
+interface AppLayoutProps {
+  children: React.ReactNode;
+}
 
 const pageVariants = {
   initial: {
@@ -29,7 +29,7 @@ const pageTransition = {
   duration: 0.3,
 };
 
-const AppLayout: React.FC = () => {
+const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -46,7 +46,8 @@ const AppLayout: React.FC = () => {
                 transition={pageTransition}
                 className="w-full"
               >
-                <Outlet />
+                {/* <Outlet /> */}
+                {children}
               </motion.div>
             </div>
           </div>

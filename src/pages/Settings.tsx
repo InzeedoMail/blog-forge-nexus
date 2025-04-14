@@ -1,21 +1,27 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useCredentials } from "@/contexts/CredentialsContext";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  AlertTriangle, 
-  KeyRound, 
-  Save, 
-  ExternalLink, 
-  FileText, 
-  FileSpreadsheet, 
-  PenTool, 
-  Languages, 
+import {
+  AlertTriangle,
+  KeyRound,
+  Save,
+  ExternalLink,
+  FileText,
+  FileSpreadsheet,
+  PenTool,
+  Languages,
   Webhook,
   Check,
   Twitter,
@@ -25,13 +31,14 @@ import {
   Github,
   Figma,
   ArrowRight,
-  CloudSync
+  Waves,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SupportedApp {
   id: string;
@@ -47,7 +54,7 @@ const Settings = () => {
   const { credentials, setCredential } = useCredentials();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  
+
   const [formState, setFormState] = useState({
     openaiApiKey: credentials.openaiApiKey || "",
     googleApiKey: credentials.googleApiKey || "",
@@ -66,7 +73,9 @@ const Settings = () => {
   // App integration states
   const [renderHtml, setRenderHtml] = useState(true);
   const [autoSaveContent, setAutoSaveContent] = useState(false);
-  const [defaultLanguage, setDefaultLanguage] = useState<"english" | "tamil">("english");
+  const [defaultLanguage, setDefaultLanguage] = useState<"english" | "tamil">(
+    "english"
+  );
 
   // Define supported apps
   const supportedApps: SupportedApp[] = [
@@ -77,7 +86,7 @@ const Settings = () => {
       icon: <PenTool className="h-5 w-5" />,
       isConnected: !!credentials.openaiApiKey,
       authType: "api_key",
-      category: "writing"
+      category: "writing",
     },
     {
       id: "google_sheets",
@@ -86,7 +95,7 @@ const Settings = () => {
       icon: <FileSpreadsheet className="h-5 w-5" />,
       isConnected: !!credentials.googleApiKey && !!credentials.googleSheetId,
       authType: "api_key",
-      category: "content"
+      category: "content",
     },
     {
       id: "blogger",
@@ -95,7 +104,7 @@ const Settings = () => {
       icon: <FileText className="h-5 w-5" />,
       isConnected: isAuthenticated && !!credentials.bloggerBlogId,
       authType: "oauth",
-      category: "content"
+      category: "content",
     },
     {
       id: "gemini",
@@ -104,7 +113,7 @@ const Settings = () => {
       icon: <Languages className="h-5 w-5" />,
       isConnected: !!credentials.geminiApiKey,
       authType: "api_key",
-      category: "writing"
+      category: "writing",
     },
     {
       id: "leonardo",
@@ -113,7 +122,7 @@ const Settings = () => {
       icon: <PenTool className="h-5 w-5" />,
       isConnected: !!credentials.leonardoApiKey,
       authType: "api_key",
-      category: "design"
+      category: "design",
     },
     {
       id: "zapier",
@@ -122,7 +131,7 @@ const Settings = () => {
       icon: <Webhook className="h-5 w-5" />,
       isConnected: false,
       authType: "webhook",
-      category: "other"
+      category: "other",
     },
     {
       id: "wordpress",
@@ -131,7 +140,7 @@ const Settings = () => {
       icon: <FileText className="h-5 w-5" />,
       isConnected: false,
       authType: "api_key",
-      category: "content"
+      category: "content",
     },
     {
       id: "medium",
@@ -140,7 +149,7 @@ const Settings = () => {
       icon: <FileText className="h-5 w-5" />,
       isConnected: false,
       authType: "api_key",
-      category: "content"
+      category: "content",
     },
     {
       id: "twitter",
@@ -149,7 +158,7 @@ const Settings = () => {
       icon: <Twitter className="h-5 w-5" />,
       isConnected: false,
       authType: "oauth",
-      category: "social"
+      category: "social",
     },
     {
       id: "instagram",
@@ -158,7 +167,7 @@ const Settings = () => {
       icon: <Instagram className="h-5 w-5" />,
       isConnected: false,
       authType: "oauth",
-      category: "social"
+      category: "social",
     },
     {
       id: "facebook",
@@ -167,7 +176,7 @@ const Settings = () => {
       icon: <Facebook className="h-5 w-5" />,
       isConnected: false,
       authType: "oauth",
-      category: "social"
+      category: "social",
     },
     {
       id: "linkedin",
@@ -176,8 +185,8 @@ const Settings = () => {
       icon: <Linkedin className="h-5 w-5" />,
       isConnected: false,
       authType: "oauth",
-      category: "social"
-    }
+      category: "social",
+    },
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -202,14 +211,17 @@ const Settings = () => {
         break;
       case "integration":
         // Save integration settings to localStorage
-        localStorage.setItem("contentSettings", JSON.stringify({
-          renderHtml,
-          autoSaveContent,
-          defaultLanguage
-        }));
+        localStorage.setItem(
+          "contentSettings",
+          JSON.stringify({
+            renderHtml,
+            autoSaveContent,
+            defaultLanguage,
+          })
+        );
         break;
     }
-    
+
     toast({
       title: "Settings saved",
       description: `Your ${section} settings have been saved successfully.`,
@@ -231,7 +243,7 @@ const Settings = () => {
       transition={{ duration: 0.5 }}
     >
       <h1 className="text-3xl font-bold mb-6">Settings</h1>
-      
+
       <Tabs defaultValue="ai" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="ai">AI Services</TabsTrigger>
@@ -239,13 +251,14 @@ const Settings = () => {
           <TabsTrigger value="integration">Integrations</TabsTrigger>
           <TabsTrigger value="content">Content Settings</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="ai" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>AI Services Configuration</CardTitle>
               <CardDescription>
-                Configure your API keys for various AI services used in content generation.
+                Configure your API keys for various AI services used in content
+                generation.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -260,7 +273,7 @@ const Settings = () => {
                   onChange={handleChange}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="geminiApiKey">Google Gemini API Key</Label>
                 <Input
@@ -272,7 +285,7 @@ const Settings = () => {
                   onChange={handleChange}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="leonardoApiKey">Leonardo.AI API Key</Label>
                 <Input
@@ -284,11 +297,12 @@ const Settings = () => {
                   onChange={handleChange}
                 />
               </div>
-              
+
               <div className="flex items-center mt-4 p-3 rounded-md bg-muted/50">
                 <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
                 <p className="text-sm text-muted-foreground">
-                  Your API keys are stored securely. Never share them with anyone.
+                  Your API keys are stored securely. Never share them with
+                  anyone.
                 </p>
               </div>
             </CardContent>
@@ -300,13 +314,14 @@ const Settings = () => {
             </CardFooter>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="google" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Google Services Configuration</CardTitle>
               <CardDescription>
-                Configure your Google API keys and service IDs for Sheets and Blogger.
+                Configure your Google API keys and service IDs for Sheets and
+                Blogger.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -321,7 +336,7 @@ const Settings = () => {
                   onChange={handleChange}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="googleSheetId">Google Sheet ID</Label>
                 <Input
@@ -332,10 +347,11 @@ const Settings = () => {
                   onChange={handleChange}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Found in your Google Sheet URL: https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit
+                  Found in your Google Sheet URL:
+                  https://docs.google.com/spreadsheets/d/[SHEET_ID]/edit
                 </p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="bloggerBlogId">Blogger Blog ID</Label>
                 <Input
@@ -349,11 +365,12 @@ const Settings = () => {
                   Found in your Blogger dashboard under "Settings"
                 </p>
               </div>
-              
+
               <div className="flex items-center mt-4 p-3 rounded-md bg-muted/50">
                 <KeyRound className="h-5 w-5 text-amber-500 mr-2" />
                 <p className="text-sm text-muted-foreground">
-                  Make sure your Google API key has the necessary permissions for Sheets and Blogger APIs.
+                  Make sure your Google API key has the necessary permissions
+                  for Sheets and Blogger APIs.
                 </p>
               </div>
             </CardContent>
@@ -395,7 +412,9 @@ const Settings = () => {
                             </div>
                             <div>
                               <p className="font-medium">{app.name}</p>
-                              <p className="text-sm text-muted-foreground">{app.description}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {app.description}
+                              </p>
                             </div>
                           </div>
                           <div>
@@ -404,9 +423,9 @@ const Settings = () => {
                                 <Check className="h-3 w-3 mr-1" /> Connected
                               </Badge>
                             ) : (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => connectApp(app.id)}
                               >
                                 Connect <ArrowRight className="ml-1 h-4 w-4" />
@@ -420,10 +439,14 @@ const Settings = () => {
                 </TabsContent>
 
                 {["writing", "content", "social", "design"].map((category) => (
-                  <TabsContent key={category} value={category} className="space-y-4">
+                  <TabsContent
+                    key={category}
+                    value={category}
+                    className="space-y-4"
+                  >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {supportedApps
-                        .filter(app => app.category === category)
+                        .filter((app) => app.category === category)
                         .map((app) => (
                           <Card key={app.id} className="overflow-hidden">
                             <CardContent className="p-4 flex items-center justify-between">
@@ -433,7 +456,9 @@ const Settings = () => {
                                 </div>
                                 <div>
                                   <p className="font-medium">{app.name}</p>
-                                  <p className="text-sm text-muted-foreground">{app.description}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {app.description}
+                                  </p>
                                 </div>
                               </div>
                               <div>
@@ -442,12 +467,13 @@ const Settings = () => {
                                     <Check className="h-3 w-3 mr-1" /> Connected
                                   </Badge>
                                 ) : (
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={() => connectApp(app.id)}
                                   >
-                                    Connect <ArrowRight className="ml-1 h-4 w-4" />
+                                    Connect{" "}
+                                    <ArrowRight className="ml-1 h-4 w-4" />
                                   </Button>
                                 )}
                               </div>
@@ -477,7 +503,7 @@ const Settings = () => {
                       Automatically save content to Google Sheets
                     </p>
                   </div>
-                  <Switch 
+                  <Switch
                     checked={autoSaveContent}
                     onCheckedChange={setAutoSaveContent}
                   />
@@ -511,12 +537,15 @@ const Settings = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={() => saveSettings("integration")} className="mr-2">
+              <Button
+                onClick={() => saveSettings("integration")}
+                className="mr-2"
+              >
                 <Save className="mr-2 h-4 w-4" />
                 Save Sync Settings
               </Button>
               <Button variant="outline" disabled>
-                <CloudSync className="mr-2 h-4 w-4" />
+                <Waves className="mr-2 h-4 w-4" />
                 Test Connections
               </Button>
             </CardFooter>
@@ -567,10 +596,7 @@ const Settings = () => {
                     Display formatted HTML in content previews
                   </p>
                 </div>
-                <Switch 
-                  checked={renderHtml}
-                  onCheckedChange={setRenderHtml}
-                />
+                <Switch checked={renderHtml} onCheckedChange={setRenderHtml} />
               </div>
 
               <Separator />
@@ -582,7 +608,12 @@ const Settings = () => {
                   name="embedHtml"
                   placeholder="<style>.custom-heading { color: blue; }</style>"
                   value={formState.embedHtml}
-                  onChange={(e) => setFormState(prev => ({...prev, embedHtml: e.target.value}))}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      embedHtml: e.target.value,
+                    }))
+                  }
                   rows={4}
                 />
                 <p className="text-sm text-muted-foreground">
