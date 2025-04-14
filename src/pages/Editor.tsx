@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useCredentials } from "@/contexts/CredentialsContext";
@@ -34,6 +35,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { X } from "lucide-react";
 
 const Editor = () => {
   const { credentials } = useCredentials();
@@ -242,13 +244,26 @@ const Editor = () => {
       const bloggerService = googleFactory.getBloggerService();
 
       try {
+        // Check if there's an access token in localStorage
+        const accessToken = localStorage.getItem("accessToken");
+        if (!accessToken) {
+          toast({
+            title: "Authentication required",
+            description: "Please log in with your Google account first.",
+            variant: "destructive",
+          });
+          throw new Error("Authentication required");
+        }
+
+        // Prepare the content with image if available
+        const fullContent = generatedContent.imageUrl
+          ? `${generatedContent.body}<p><img src="${generatedContent.imageUrl}" alt="${generatedContent.title}" /></p>`
+          : generatedContent.body;
+            
+        // Try to create the post
         await bloggerService.createPost({
           title: generatedContent.title,
-          content:
-            generatedContent.body +
-            (generatedContent.imageUrl
-              ? `<p><img src="${generatedContent.imageUrl}" alt="${generatedContent.title}" /></p>`
-              : ""),
+          content: fullContent,
           labels: [contentType, ...seoKeywords],
         });
 
@@ -258,11 +273,12 @@ const Editor = () => {
             "Your post has been published to your Blogger blog successfully!",
         });
 
+        // Save to history in Google Sheets if configured
         if (credentials.googleApiKey && credentials.googleSheetId) {
           saveToSheets();
         }
       } catch (error: any) {
-        // Check if this is our special OAUTH_REQUIRED error
+        // Handle our special OAUTH_REQUIRED error
         if (error.type === "OAUTH_REQUIRED" && error.bloggerEditorUrl) {
           // Save to history first
           if (credentials.googleApiKey && credentials.googleSheetId) {
@@ -275,7 +291,7 @@ const Editor = () => {
           toast({
             title: "Opening Blogger Editor",
             description:
-              "Since API key doesn't allow direct posting, we've opened the Blogger editor in a new tab. Please copy and paste your content there.",
+              "We've opened the Blogger editor in a new tab. Please copy and paste your content there.",
           });
         } else {
           throw error; // Re-throw if it's not our special error
@@ -371,10 +387,9 @@ const Editor = () => {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>About Blogger Integration</AlertTitle>
         <AlertDescription>
-          Due to Blogger API limitations, direct post creation requires OAuth
-          authentication. When you click "Publish to Blogger," we'll open the
-          Blogger editor in a new tab with your content ready to paste. Your
-          content will also be saved to your content history.
+          Creating posts on Blogger requires OAuth authentication. When you click "Publish to Blogger,"
+          we'll try to use your login token. If needed, we'll open the Blogger editor in a new tab 
+          with your content ready to paste. Your content will also be saved to your content history.
         </AlertDescription>
       </Alert>
 
