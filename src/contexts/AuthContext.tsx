@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { jwtDecode } from "jwt-decode";
@@ -58,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Extract user info from Google response
       console.log(response);
       const decodedData = jwtDecode<GoogleJwtPayload>(response.credential);
+      localStorage.setItem("accessToken", response.credential);
 
       const { email, name, picture } = decodedData;
       const token = response.credential;

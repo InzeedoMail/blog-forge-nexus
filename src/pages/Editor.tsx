@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useCredentials } from "@/contexts/CredentialsContext";
@@ -7,27 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { AIServiceFactory, GoogleServiceFactory } from "@/services/serviceFactory";
-import { 
-  Loader2, 
-  FileText, 
-  ImageIcon, 
-  Upload, 
-  Send, 
+import {
+  AIServiceFactory,
+  GoogleServiceFactory,
+} from "@/services/serviceFactory";
+import {
+  Loader2,
+  FileText,
+  ImageIcon,
+  Upload,
+  Send,
   Tags,
   Globe2,
   Users,
   MessageSquareQuote,
   Code,
   FileSpreadsheet,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,12 +38,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 const Editor = () => {
   const { credentials } = useCredentials();
   const { toast } = useToast();
-  
+
   // Basic content options
   const [topic, setTopic] = useState("");
   const [length, setLength] = useState<"short" | "medium" | "long">("medium");
   const [model, setModel] = useState("openai");
-  
+
   // Advanced customization options
   const [audience, setAudience] = useState("general");
   const [tone, setTone] = useState("professional");
@@ -50,11 +52,11 @@ const Editor = () => {
   const [seoKeywordInput, setSeoKeywordInput] = useState("");
   const [seoCountry, setSeoCountry] = useState("global");
   const [includeHtml, setIncludeHtml] = useState(false);
-  
+
   // UI states
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
-  
+
   // Generated content
   const [generatedContent, setGeneratedContent] = useState({
     title: "",
@@ -65,7 +67,7 @@ const Editor = () => {
     targetAudience: "",
     contentType: "",
   });
-  
+
   const handleAddKeyword = () => {
     if (seoKeywordInput && !seoKeywords.includes(seoKeywordInput)) {
       setSeoKeywords([...seoKeywords, seoKeywordInput]);
@@ -74,7 +76,7 @@ const Editor = () => {
   };
 
   const handleRemoveKeyword = (keyword: string) => {
-    setSeoKeywords(seoKeywords.filter(k => k !== keyword));
+    setSeoKeywords(seoKeywords.filter((k) => k !== keyword));
   };
 
   const handleKeywordKeyDown = (e: React.KeyboardEvent) => {
@@ -83,7 +85,7 @@ const Editor = () => {
       handleAddKeyword();
     }
   };
-  
+
   const generateContent = async () => {
     if (!topic) {
       toast({
@@ -93,7 +95,7 @@ const Editor = () => {
       });
       return;
     }
-    
+
     if (!credentials.openaiApiKey) {
       toast({
         title: "API key missing",
@@ -102,17 +104,17 @@ const Editor = () => {
       });
       return;
     }
-    
+
     setIsGenerating(true);
-    
+
     try {
       const aiFactory = new AIServiceFactory(
         credentials.openaiApiKey,
         credentials.geminiApiKey
       );
-      
+
       const contentService = aiFactory.getContentGenerationService();
-      
+
       const result = await contentService.generateBlogPost({
         topic,
         length,
@@ -121,19 +123,21 @@ const Editor = () => {
         contentType,
         seoKeywords,
         seoCountry,
-        includeHtml
+        includeHtml,
       });
-      
+
       setGeneratedContent({
         ...generatedContent,
-        title: result.title || "",
-        body: result.body || "",
-        seoDescription: result.seoDescription || "",
-        seoKeywords: result.seoKeywords || [],
-        targetAudience: result.targetAudience || audience,
-        contentType: result.contentType || contentType,
+        // Content is now directly available in result.content
+        title: result.content.split("\n")[0].replace(/^#\s*/, ""), // Extract title from first line
+        body: result.content, // The entire formatted content
+        // SEO metadata is now in result.seoMetadata
+        seoDescription: result.seoMetadata.description || "",
+        seoKeywords: result.seoMetadata.keywords || [],
+        targetAudience: result.seoMetadata.targetAudience || audience,
+        contentType: result.seoMetadata.contentType || contentType,
       });
-      
+
       toast({
         title: "Content generated",
         description: "Content has been generated successfully!",
@@ -142,14 +146,17 @@ const Editor = () => {
       console.error("Error generating content:", error);
       toast({
         title: "Generation failed",
-        description: error instanceof Error ? error.message : "Failed to generate content. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate content. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
     }
   };
-  
+
   const generateImage = async () => {
     if (!generatedContent.title) {
       toast({
@@ -159,7 +166,7 @@ const Editor = () => {
       });
       return;
     }
-    
+
     if (!credentials.openaiApiKey) {
       toast({
         title: "API key missing",
@@ -168,22 +175,22 @@ const Editor = () => {
       });
       return;
     }
-    
+
     setIsGenerating(true);
-    
+
     try {
       const aiFactory = new AIServiceFactory(credentials.openaiApiKey);
       const imageService = aiFactory.getImageGenerationService();
-      
+
       const prompt = `Create a professional, high-quality ${contentType} image for an article titled "${generatedContent.title}" targeting ${audience} audience. The image should be clear, engaging, and suitable for professional use.`;
-      
+
       const imageUrl = await imageService.generateImage(prompt);
-      
+
       setGeneratedContent({
         ...generatedContent,
         imageUrl,
       });
-      
+
       toast({
         title: "Image generated",
         description: "Content image has been generated successfully!",
@@ -192,14 +199,17 @@ const Editor = () => {
       console.error("Error generating image:", error);
       toast({
         title: "Image generation failed",
-        description: error instanceof Error ? error.message : "Failed to generate image. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate image. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
     }
   };
-  
+
   const publishToBlogger = async () => {
     if (!generatedContent.title || !generatedContent.body) {
       toast({
@@ -209,43 +219,45 @@ const Editor = () => {
       });
       return;
     }
-    
+
     if (!credentials.googleApiKey || !credentials.bloggerBlogId) {
       toast({
         title: "API credentials missing",
-        description: "Please add your Google API key and Blogger Blog ID in Settings.",
+        description:
+          "Please add your Google API key and Blogger Blog ID in Settings.",
         variant: "destructive",
       });
       return;
     }
-    
+
     setIsGenerating(true);
-    
+
     try {
       const googleFactory = new GoogleServiceFactory(
         credentials.googleApiKey,
         credentials.googleSheetId,
         credentials.bloggerBlogId
       );
-      
+
       const bloggerService = googleFactory.getBloggerService();
-      
+
       try {
         await bloggerService.createPost({
           title: generatedContent.title,
-          content: generatedContent.body + (
-            generatedContent.imageUrl 
-              ? `<p><img src="${generatedContent.imageUrl}" alt="${generatedContent.title}" /></p>` 
-              : ""
-          ),
-          labels: [contentType, ...seoKeywords]
+          content:
+            generatedContent.body +
+            (generatedContent.imageUrl
+              ? `<p><img src="${generatedContent.imageUrl}" alt="${generatedContent.title}" /></p>`
+              : ""),
+          labels: [contentType, ...seoKeywords],
         });
-        
+
         toast({
           title: "Published to Blogger",
-          description: "Your post has been published to your Blogger blog successfully!",
+          description:
+            "Your post has been published to your Blogger blog successfully!",
         });
-        
+
         if (credentials.googleApiKey && credentials.googleSheetId) {
           saveToSheets();
         }
@@ -256,13 +268,14 @@ const Editor = () => {
           if (credentials.googleApiKey && credentials.googleSheetId) {
             await saveToSheets();
           }
-          
+
           // Open Blogger in new tab
-          window.open(error.bloggerEditorUrl, '_blank');
-          
+          window.open(error.bloggerEditorUrl, "_blank");
+
           toast({
             title: "Opening Blogger Editor",
-            description: "Since API key doesn't allow direct posting, we've opened the Blogger editor in a new tab. Please copy and paste your content there.",
+            description:
+              "Since API key doesn't allow direct posting, we've opened the Blogger editor in a new tab. Please copy and paste your content there.",
           });
         } else {
           throw error; // Re-throw if it's not our special error
@@ -272,14 +285,17 @@ const Editor = () => {
       console.error("Error publishing to Blogger:", error);
       toast({
         title: "Publishing failed",
-        description: error instanceof Error ? error.message : "Failed to publish to Blogger. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to publish to Blogger. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
     }
   };
-  
+
   const saveToSheets = async () => {
     if (!generatedContent.title || !generatedContent.body) {
       toast({
@@ -289,45 +305,50 @@ const Editor = () => {
       });
       return;
     }
-    
+
     if (!credentials.googleApiKey || !credentials.googleSheetId) {
       toast({
         title: "API credentials missing",
-        description: "Please add your Google API key and Google Sheet ID in Settings.",
+        description:
+          "Please add your Google API key and Google Sheet ID in Settings.",
         variant: "destructive",
       });
       return;
     }
-    
+
     setIsGenerating(true);
-    
+
     try {
       const googleFactory = new GoogleServiceFactory(
         credentials.googleApiKey,
         credentials.googleSheetId,
         credentials.bloggerBlogId
       );
-      
+
       const sheetsService = googleFactory.getGoogleSheetsService();
-      
+
       await sheetsService.savePost({
         title: generatedContent.title,
         body: generatedContent.body,
         imageUrl: generatedContent.imageUrl,
         tags: [contentType, ...seoKeywords],
         date: new Date().toISOString(),
-        status: "published"
+        status: "published",
       });
-      
+
       toast({
         title: "Saved to Google Sheets",
-        description: "Your content has been saved to Google Sheets successfully!",
+        description:
+          "Your content has been saved to Google Sheets successfully!",
       });
     } catch (error) {
       console.error("Error saving to Google Sheets:", error);
       toast({
         title: "Save failed",
-        description: error instanceof Error ? error.message : "Failed to save to Google Sheets. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to save to Google Sheets. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -345,27 +366,34 @@ const Editor = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Content Creator</h1>
       </div>
-      
+
       <Alert variant="warning" className="mb-4">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>About Blogger Integration</AlertTitle>
         <AlertDescription>
-          Due to Blogger API limitations, direct post creation requires OAuth authentication. 
-          When you click "Publish to Blogger," we'll open the Blogger editor in a new tab 
-          with your content ready to paste. Your content will also be saved to your content history.
+          Due to Blogger API limitations, direct post creation requires OAuth
+          authentication. When you click "Publish to Blogger," we'll open the
+          Blogger editor in a new tab with your content ready to paste. Your
+          content will also be saved to your content history.
         </AlertDescription>
       </Alert>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
           <CardContent className="pt-6">
             <Tabs defaultValue="basic" onValueChange={setActiveTab}>
               <TabsList className="mb-4 w-full">
-                <TabsTrigger value="basic" className="flex-1">Basic</TabsTrigger>
-                <TabsTrigger value="advanced" className="flex-1">Advanced</TabsTrigger>
-                <TabsTrigger value="seo" className="flex-1">SEO</TabsTrigger>
+                <TabsTrigger value="basic" className="flex-1">
+                  Basic
+                </TabsTrigger>
+                <TabsTrigger value="advanced" className="flex-1">
+                  Advanced
+                </TabsTrigger>
+                <TabsTrigger value="seo" className="flex-1">
+                  SEO
+                </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="basic" className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="topic">Topic or Title</Label>
@@ -376,7 +404,7 @@ const Editor = () => {
                     onChange={(e) => setTopic(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="contentType">Content Type</Label>
                   <Select value={contentType} onValueChange={setContentType}>
@@ -386,7 +414,9 @@ const Editor = () => {
                     <SelectContent>
                       <SelectItem value="blog">Blog Post</SelectItem>
                       <SelectItem value="article">Article</SelectItem>
-                      <SelectItem value="product">Product Description</SelectItem>
+                      <SelectItem value="product">
+                        Product Description
+                      </SelectItem>
                       <SelectItem value="social">Social Media Post</SelectItem>
                       <SelectItem value="newsletter">Newsletter</SelectItem>
                       <SelectItem value="press">Press Release</SelectItem>
@@ -395,24 +425,32 @@ const Editor = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="length">Content Length</Label>
-                  <Select 
-                    value={length} 
-                    onValueChange={(value) => setLength(value as "short" | "medium" | "long")}
+                  <Select
+                    value={length}
+                    onValueChange={(value) =>
+                      setLength(value as "short" | "medium" | "long")
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select content length" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="short">Short (500-800 words)</SelectItem>
-                      <SelectItem value="medium">Medium (800-1200 words)</SelectItem>
-                      <SelectItem value="long">Long (1500-2000 words)</SelectItem>
+                      <SelectItem value="short">
+                        Short (500-800 words)
+                      </SelectItem>
+                      <SelectItem value="medium">
+                        Medium (800-1200 words)
+                      </SelectItem>
+                      <SelectItem value="long">
+                        Long (1500-2000 words)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="model">AI Model</Label>
                   <Select value={model} onValueChange={setModel}>
@@ -421,14 +459,18 @@ const Editor = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem value="gemini" disabled={!credentials.geminiApiKey}>
-                        Google Gemini {!credentials.geminiApiKey && "(API key missing)"}
+                      <SelectItem
+                        value="gemini"
+                        disabled={!credentials.geminiApiKey}
+                      >
+                        Google Gemini{" "}
+                        {!credentials.geminiApiKey && "(API key missing)"}
                       </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="advanced" className="space-y-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2" htmlFor="audience">
@@ -440,7 +482,9 @@ const Editor = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="general">General</SelectItem>
-                      <SelectItem value="professional">Professionals</SelectItem>
+                      <SelectItem value="professional">
+                        Professionals
+                      </SelectItem>
                       <SelectItem value="technical">Technical</SelectItem>
                       <SelectItem value="beginners">Beginners</SelectItem>
                       <SelectItem value="students">Students</SelectItem>
@@ -449,7 +493,7 @@ const Editor = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2" htmlFor="tone">
                     <MessageSquareQuote className="h-4 w-4" /> Content Tone
@@ -464,12 +508,14 @@ const Editor = () => {
                       <SelectItem value="casual">Casual</SelectItem>
                       <SelectItem value="humorous">Humorous</SelectItem>
                       <SelectItem value="formal">Formal</SelectItem>
-                      <SelectItem value="authoritative">Authoritative</SelectItem>
+                      <SelectItem value="authoritative">
+                        Authoritative
+                      </SelectItem>
                       <SelectItem value="educational">Educational</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Code className="h-4 w-4" />
@@ -489,10 +535,13 @@ const Editor = () => {
                   </div>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="seo" className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2" htmlFor="seoKeywords">
+                  <Label
+                    className="flex items-center gap-2"
+                    htmlFor="seoKeywords"
+                  >
                     <Tags className="h-4 w-4" /> SEO Keywords
                   </Label>
                   <div className="flex gap-2">
@@ -510,12 +559,12 @@ const Editor = () => {
                   {seoKeywords.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {seoKeywords.map((keyword, index) => (
-                        <div 
-                          key={index} 
+                        <div
+                          key={index}
                           className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm flex items-center gap-1"
                         >
                           {keyword}
-                          <button 
+                          <button
                             type="button"
                             onClick={() => handleRemoveKeyword(keyword)}
                             className="text-secondary-foreground/70 hover:text-secondary-foreground"
@@ -527,9 +576,12 @@ const Editor = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2" htmlFor="seoCountry">
+                  <Label
+                    className="flex items-center gap-2"
+                    htmlFor="seoCountry"
+                  >
                     <Globe2 className="h-4 w-4" /> SEO Country Optimization
                   </Label>
                   <Select value={seoCountry} onValueChange={setSeoCountry}>
@@ -537,7 +589,9 @@ const Editor = () => {
                       <SelectValue placeholder="Select country for SEO" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="global">Global (No specific country)</SelectItem>
+                      <SelectItem value="global">
+                        Global (No specific country)
+                      </SelectItem>
                       <SelectItem value="US">United States</SelectItem>
                       <SelectItem value="UK">United Kingdom</SelectItem>
                       <SelectItem value="Canada">Canada</SelectItem>
@@ -551,11 +605,11 @@ const Editor = () => {
                 </div>
               </TabsContent>
             </Tabs>
-            
+
             <div className="mt-6 space-y-4">
-              <Button 
-                className="w-full" 
-                onClick={generateContent} 
+              <Button
+                className="w-full"
+                onClick={generateContent}
                 disabled={isGenerating || !topic}
               >
                 {isGenerating ? (
@@ -570,7 +624,7 @@ const Editor = () => {
                   </>
                 )}
               </Button>
-              
+
               <Button
                 className="w-full"
                 variant="secondary"
@@ -589,21 +643,29 @@ const Editor = () => {
                   </>
                 )}
               </Button>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   onClick={saveToSheets}
-                  disabled={isGenerating || !generatedContent.title || !generatedContent.body}
+                  disabled={
+                    isGenerating ||
+                    !generatedContent.title ||
+                    !generatedContent.body
+                  }
                 >
                   <FileSpreadsheet className="mr-2 h-4 w-4" />
                   Save to Sheets
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={publishToBlogger}
-                  disabled={isGenerating || !generatedContent.title || !generatedContent.body}
+                  disabled={
+                    isGenerating ||
+                    !generatedContent.title ||
+                    !generatedContent.body
+                  }
                 >
                   <Send className="mr-2 h-4 w-4" />
                   Publish to Blogger
@@ -612,7 +674,7 @@ const Editor = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="lg:col-span-2">
           <CardContent className="pt-6">
             <Tabs defaultValue="preview">
@@ -621,7 +683,7 @@ const Editor = () => {
                 <TabsTrigger value="edit">Edit</TabsTrigger>
                 <TabsTrigger value="seo">SEO Data</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="preview" className="space-y-4">
                 {generatedContent.imageUrl && (
                   <div className="mb-4">
@@ -632,20 +694,22 @@ const Editor = () => {
                     />
                   </div>
                 )}
-                
+
                 {generatedContent.title ? (
-                  <h2 className="text-2xl font-bold">{generatedContent.title}</h2>
+                  <h2 className="text-2xl font-bold">
+                    {generatedContent.title}
+                  </h2>
                 ) : (
                   <div className="h-8 mb-4 w-3/4 bg-muted/40 rounded animate-pulse"></div>
                 )}
-                
+
                 {generatedContent.body ? (
-                  <div 
+                  <div
                     className="prose prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ 
-                      __html: includeHtml 
-                        ? generatedContent.body 
-                        : generatedContent.body.replace(/\n/g, '<br>') 
+                    dangerouslySetInnerHTML={{
+                      __html: includeHtml
+                        ? generatedContent.body
+                        : generatedContent.body.replace(/\n/g, "<br>"),
                     }}
                   ></div>
                 ) : (
@@ -656,38 +720,53 @@ const Editor = () => {
                   </div>
                 )}
               </TabsContent>
-              
+
               <TabsContent value="edit" className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title</Label>
                   <Input
                     id="title"
                     value={generatedContent.title}
-                    onChange={(e) => setGeneratedContent({ ...generatedContent, title: e.target.value })}
+                    onChange={(e) =>
+                      setGeneratedContent({
+                        ...generatedContent,
+                        title: e.target.value,
+                      })
+                    }
                     placeholder="Enter post title"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="body">Content</Label>
                   <Textarea
                     id="body"
                     value={generatedContent.body}
-                    onChange={(e) => setGeneratedContent({ ...generatedContent, body: e.target.value })}
+                    onChange={(e) =>
+                      setGeneratedContent({
+                        ...generatedContent,
+                        body: e.target.value,
+                      })
+                    }
                     placeholder="Enter post content"
                     rows={15}
                     className="min-h-[300px] font-mono"
                   />
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="seo" className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="seoDescription">SEO Description</Label>
                   <Textarea
                     id="seoDescription"
                     value={generatedContent.seoDescription}
-                    onChange={(e) => setGeneratedContent({ ...generatedContent, seoDescription: e.target.value })}
+                    onChange={(e) =>
+                      setGeneratedContent({
+                        ...generatedContent,
+                        seoDescription: e.target.value,
+                      })
+                    }
                     placeholder="Meta description for search engines (150-160 characters)"
                     rows={3}
                     maxLength={160}
@@ -697,32 +776,45 @@ const Editor = () => {
                     {generatedContent.seoDescription.length}/160 characters
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Suggested SEO Keywords</Label>
                   <div className="flex flex-wrap gap-2">
                     {generatedContent.seoKeywords.length > 0 ? (
                       generatedContent.seoKeywords.map((keyword, index) => (
-                        <div key={index} className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
+                        <div
+                          key={index}
+                          className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm"
+                        >
                           {keyword}
                         </div>
                       ))
                     ) : (
-                      <p className="text-muted-foreground">No suggested keywords yet</p>
+                      <p className="text-muted-foreground">
+                        No suggested keywords yet
+                      </p>
                     )}
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Content Metadata</Label>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-sm text-muted-foreground">Target Audience:</span>
-                      <p className="font-medium">{generatedContent.targetAudience || audience || "-"}</p>
+                      <span className="text-sm text-muted-foreground">
+                        Target Audience:
+                      </span>
+                      <p className="font-medium">
+                        {generatedContent.targetAudience || audience || "-"}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-sm text-muted-foreground">Content Type:</span>
-                      <p className="font-medium">{generatedContent.contentType || contentType || "-"}</p>
+                      <span className="text-sm text-muted-foreground">
+                        Content Type:
+                      </span>
+                      <p className="font-medium">
+                        {generatedContent.contentType || contentType || "-"}
+                      </p>
                     </div>
                   </div>
                 </div>
