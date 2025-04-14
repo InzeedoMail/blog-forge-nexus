@@ -1,9 +1,12 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useCredentials } from "@/contexts/CredentialsContext";
 import { GoogleServiceFactory } from "@/services/serviceFactory";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 import BloggerPostEditor from "@/components/blogger/BloggerPostEditor";
 import BloggerPostList from "@/components/blogger/BloggerPostList";
@@ -195,6 +198,16 @@ const Blogger = () => {
           <Plus className="mr-2 h-4 w-4" /> New Post
         </Button>
       </div>
+
+      <Alert variant="warning" className="bg-amber-500/10 border-amber-500/30 text-amber-200">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Read-Only Mode</AlertTitle>
+        <AlertDescription>
+          This Blogger integration is currently in read-only mode. Creating and updating posts requires OAuth authentication, 
+          which is not implemented in this version. You can view existing posts but cannot create new ones or edit 
+          existing posts with just an API key.
+        </AlertDescription>
+      </Alert>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
