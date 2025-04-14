@@ -73,7 +73,8 @@ export class GoogleServiceFactory {
   getGoogleSheetsService() {
     if (this.googleApiKey && this.googleSheetId) {
       try {
-        // Dynamic import for GoogleSheetsService
+        // Since we're using dynamic imports for GoogleSheetsService to avoid circular dependencies,
+        // we need to make sure it's properly imported
         const { GoogleSheetsService } = require("./googleSheetsService");
         return new GoogleSheetsService(this.googleApiKey, this.googleSheetId);
       } catch (error) {
@@ -87,7 +88,7 @@ export class GoogleServiceFactory {
   getBloggerService() {
     if (this.googleApiKey && this.bloggerBlogId) {
       try {
-        // Return a new instance of BloggerService directly (no require)
+        // Return a new instance of BloggerService
         return new BloggerService(this.googleApiKey, this.bloggerBlogId);
       } catch (error) {
         console.error("Error initializing Blogger service:", error);

@@ -1,6 +1,17 @@
 
 import { Configuration, OpenAIApi } from "openai";
 
+interface ContentGenerationOptions {
+  topic: string;
+  length: "short" | "medium" | "long";
+  audience?: string;
+  tone?: string;
+  contentType?: string;
+  seoKeywords?: string[];
+  seoCountry?: string;
+  includeHtml?: boolean;
+}
+
 export class OpenAIService {
   private openai: OpenAIApi;
 
@@ -11,25 +22,60 @@ export class OpenAIService {
     this.openai = new OpenAIApi(configuration);
   }
 
-  async generateBlogPost(
-    topic: string, 
-    length: "short" | "medium" | "long" = "medium"
-  ) {
+  async generateBlogPost(options: ContentGenerationOptions) {
     try {
+      const { 
+        topic, 
+        length = "medium", 
+        audience = "general",
+        tone = "professional",
+        contentType = "blog",
+        seoKeywords = [],
+        seoCountry = "global",
+        includeHtml = false
+      } = options;
+      
       const wordCount = {
         short: "500-800",
         medium: "800-1200",
         long: "1500-2000",
       };
 
-      const prompt = `Write a high-quality, engaging blog post about "${topic}". 
-      The post should be ${wordCount[length]} words long and include:
+      // Build a comprehensive prompt based on all options
+      let prompt = `Write a high-quality, engaging ${contentType} about "${topic}". 
+      The post should be ${wordCount[length]} words long and target a ${audience} audience with a ${tone} tone.`;
+      
+      // Add SEO keywords if provided
+      if (seoKeywords.length > 0) {
+        prompt += `\nOptimize for these SEO keywords: ${seoKeywords.join(", ")}.`;
+      }
+      
+      // Add country-specific SEO if not global
+      if (seoCountry !== "global") {
+        prompt += `\nOptimize content specifically for ${seoCountry} readers and SEO.`;
+      }
+      
+      // Structure requirements
+      prompt += `\nThe content should include:
       - An attention-grabbing headline
       - An engaging introduction that hooks the reader
       - Well-structured body with subheadings
-      - A conclusion with a call to action
-      - Use a professional but conversational tone.
-      Format the output as a JSON object with "title" and "body" fields. The body should include markdown formatting.`;
+      - A conclusion with a call to action`;
+      
+      // Format instructions
+      if (includeHtml) {
+        prompt += `\nFormat the output with HTML tags for headings, paragraphs, lists, etc.`;
+      } else {
+        prompt += `\nUse markdown formatting.`;
+      }
+      
+      prompt += `\nFormat the output as a JSON object with these fields:
+      - "title": the headline
+      - "body": the formatted content
+      - "seoDescription": a compelling 150-160 character meta description
+      - "seoKeywords": suggested SEO keywords based on the content (array)
+      - "targetAudience": who this content is best suited for
+      - "contentType": "${contentType}"`;
 
       const response = await this.openai.createCompletion({
         model: "gpt-3.5-turbo-instruct",
@@ -48,6 +94,10 @@ export class OpenAIService {
         return {
           title: text.split("\n")[0].replace(/^#\s*/, ""),
           body: text,
+          seoDescription: "",
+          seoKeywords: [],
+          targetAudience: audience,
+          contentType: contentType,
         };
       }
     } catch (error) {

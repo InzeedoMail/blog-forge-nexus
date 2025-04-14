@@ -38,16 +38,22 @@ export class BloggerService {
   }
 
   async createPost(post: BloggerPost) {
-    throw new Error(
-      "Creating posts requires OAuth authentication. This app currently only supports read operations with API keys. " +
-      "Please check the Blogger documentation for implementing OAuth 2.0 authentication."
-    );
+    // For non-OAuth authentication (API key only), prepare link to the Blogger post editor
+    const bloggerEditorUrl = `https://www.blogger.com/blog/post/edit/content/${this.blogId}`;
+    
+    // Since API key doesn't allow write operations, provide instructions for manual posting
+    throw {
+      type: "OAUTH_REQUIRED",
+      message: "Creating posts requires OAuth authentication. This app currently only supports read operations with API keys.",
+      bloggerEditorUrl: bloggerEditorUrl,
+      post: post // Pass the post data so the frontend can use it
+    };
   }
 
   async updatePost(post: BloggerPost) {
-    throw new Error(
-      "Updating posts requires OAuth authentication. This app currently only supports read operations with API keys. " +
-      "Please check the Blogger documentation for implementing OAuth 2.0 authentication."
-    );
+    throw {
+      type: "OAUTH_REQUIRED",
+      message: "Updating posts requires OAuth authentication. This app currently only supports read operations with API keys.",
+    };
   }
 }
