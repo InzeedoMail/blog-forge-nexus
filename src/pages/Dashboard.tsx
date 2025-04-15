@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Image, History, Send, Settings } from "lucide-react";
+import { FileText, Image, History, Send, Settings, FileUp, Code, ImageDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,11 +19,39 @@ const Dashboard = () => {
       color: "bg-blue-500",
     },
     {
+      title: "Paraphrase Articles",
+      description: "Rewrite content in different styles",
+      icon: FileText,
+      to: "/article-paraphraser",
+      color: "bg-indigo-500",
+    },
+    {
       title: "Generate Images",
       description: "Create images for your blog posts",
       icon: Image,
-      to: "/images",
+      to: "/image-generator",
       color: "bg-purple-500",
+    },
+    {
+      title: "Extract Text from Images",
+      description: "Convert image text to editable content",
+      icon: ImageDown,
+      to: "/image-text-extractor",
+      color: "bg-pink-500",
+    },
+    {
+      title: "Analyze Files",
+      description: "Extract insights from your documents",
+      icon: FileUp,
+      to: "/file-analyzer",
+      color: "bg-orange-500",
+    },
+    {
+      title: "Review Code",
+      description: "Get AI feedback on your code",
+      icon: Code,
+      to: "/code-reviewer",
+      color: "bg-yellow-500",
     },
     {
       title: "View History",

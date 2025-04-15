@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import AuthGuard from "./components/auth/AuthGuard";
@@ -10,7 +11,10 @@ import Blogger from "./pages/Blogger";
 import GoogleSheets from "./pages/GoogleSheets";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
-import ArticleParaphraser from "./pages/ArticleParaphraser"; // Add new import
+import ArticleParaphraser from "./pages/ArticleParaphraser";
+import ImageTextExtractor from "./pages/ImageTextExtractor";
+import FileAnalyzer from "./pages/FileAnalyzer";
+import CodeReviewer from "./pages/CodeReviewer";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CredentialsProvider } from "@/contexts/CredentialsContext";
@@ -112,6 +116,39 @@ function App() {
                   <AuthGuard>
                     <AppLayout>
                       <Settings />
+                    </AppLayout>
+                  </AuthGuard>
+                }
+              />
+
+              <Route
+                path="/image-text-extractor"
+                element={
+                  <AuthGuard>
+                    <AppLayout>
+                      <ImageTextExtractor />
+                    </AppLayout>
+                  </AuthGuard>
+                }
+              />
+
+              <Route
+                path="/file-analyzer"
+                element={
+                  <AuthGuard>
+                    <AppLayout>
+                      <FileAnalyzer />
+                    </AppLayout>
+                  </AuthGuard>
+                }
+              />
+
+              <Route
+                path="/code-reviewer"
+                element={
+                  <AuthGuard>
+                    <AppLayout>
+                      <CodeReviewer />
                     </AppLayout>
                   </AuthGuard>
                 }

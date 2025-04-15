@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Home,
@@ -8,6 +9,9 @@ import {
   LogOut,
   Database,
   Send,
+  FileUp,
+  Code,
+  ImageDown,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
@@ -78,8 +82,11 @@ const AppSidebar: React.FC = () => {
       label: "Article Paraphraser",
     },
     { path: "/image-generator", icon: Image, label: "Image Generator" },
+    { path: "/image-text-extractor", icon: ImageDown, label: "Image Text Extractor" },
+    { path: "/file-analyzer", icon: FileUp, label: "File Analyzer" },
+    { path: "/code-reviewer", icon: Code, label: "Code Reviewer" },
     { path: "/history", icon: History, label: "Post History" },
-    { path: "/sheets", icon: Database, label: "Google Sheets" },
+    { path: "/google-sheets", icon: Database, label: "Google Sheets" },
     { path: "/blogger", icon: Send, label: "Blogger" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
