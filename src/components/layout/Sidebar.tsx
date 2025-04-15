@@ -70,7 +70,7 @@ const AppSidebar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const navLinks = [
-    { path: "/", icon: Home, label: "Dashboard" },
+    { path: "/dashboard", icon: Home, label: "Dashboard" },
     { path: "/editor", icon: FileText, label: "Editor" },
     {
       path: "/article-paraphraser",

@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import AuthGuard from "./components/auth/AuthGuard";

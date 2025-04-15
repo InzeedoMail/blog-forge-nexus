@@ -192,7 +192,7 @@ export class OpenAIService {
         language = "english",
         toneStyle = "professional",
         preserveKeywords = true,
-        outputFormat = "html"
+        outputFormat = "text"
       } = options;
       
       if (!text || text.trim().length === 0) {
@@ -205,7 +205,17 @@ export class OpenAIService {
         : `You are an expert in Tamil language with excellent paraphrasing skills.
           Paraphrase the provided Tamil text while maintaining its meaning and key points.`;
       
-      let userPrompt = `Paraphrase the following ${language} text in a ${toneStyle} tone.`;
+      let userPrompt = ` 
+      Paraphrase the following content professionally while preserving its structure. 
+- make sure to paraphrase the content without changing its meaning.
+-make sure to paraphrase in  ${language} text in a ${toneStyle} tone.
+- Identify and keep all main headings (e.g., H1, H2) and subheadings.
+- Maintain paragraph breaks and spacing.
+- Enhance clarity, grammar, and formal tone.
+- Do not remove or merge any important sections.
+- Keep bullet points or numbered lists, if any, intact.
+- Format output neatly with clear separation between headings and paragraphs.
+`;
       
       if (preserveKeywords) {
         userPrompt += " Preserve important keywords, names, and technical terms.";
@@ -388,6 +398,7 @@ export class OpenAIService {
         prompt,
         n: 1,
         size: "1024x1024",
+        
       });
 
       return response.data.data[0].url;
