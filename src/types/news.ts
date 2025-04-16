@@ -1,10 +1,13 @@
-
 export interface NewsItem {
   title: string;
   description: string;
   link: string;
   pubDate: string;
   source: string;
+  imageUrl?: string;
+  tags?: string[];
+  keywords?: string[];
+  pinned?: boolean;
 }
 
 export const NewsCategories = {
@@ -23,3 +26,16 @@ export const languageOptions = [
   { value: "fr", label: "French" },
   { value: "es", label: "Spanish" },
 ] as const;
+
+export interface NewsFilters {
+  search: string;
+  categories: string[];
+  sortBy: 'date' | 'relevance';
+  sortOrder: 'asc' | 'desc';
+}
+
+export interface TelegramNotification {
+  chatId: string;
+  keywords: string[];
+  categories: string[];
+}
