@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import AuthGuard from "./components/auth/AuthGuard";
@@ -15,13 +14,13 @@ import ArticleParaphraser from "./pages/ArticleParaphraser";
 import ImageTextExtractor from "./pages/ImageTextExtractor";
 import FileAnalyzer from "./pages/FileAnalyzer";
 import CodeReviewer from "./pages/CodeReviewer";
+import News from "./pages/News";
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CredentialsProvider } from "@/contexts/CredentialsContext";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Create a client
 const queryClient = new QueryClient();
 
 function App() {
@@ -149,6 +148,17 @@ function App() {
                   <AuthGuard>
                     <AppLayout>
                       <CodeReviewer />
+                    </AppLayout>
+                  </AuthGuard>
+                }
+              />
+
+              <Route
+                path="/news"
+                element={
+                  <AuthGuard>
+                    <AppLayout>
+                      <News />
                     </AppLayout>
                   </AuthGuard>
                 }

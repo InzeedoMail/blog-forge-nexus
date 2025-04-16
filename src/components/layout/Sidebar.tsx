@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Home,
@@ -12,6 +11,7 @@ import {
   FileUp,
   Code,
   ImageDown,
+  Newspaper,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
@@ -75,6 +75,7 @@ const AppSidebar: React.FC = () => {
 
   const navLinks = [
     { path: "/dashboard", icon: Home, label: "Dashboard" },
+    { path: "/news", icon: Newspaper, label: "News Feed" },
     { path: "/editor", icon: FileText, label: "Editor" },
     {
       path: "/article-paraphraser",
