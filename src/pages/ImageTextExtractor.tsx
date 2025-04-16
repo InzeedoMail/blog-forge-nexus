@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +17,7 @@ const ImageTextExtractor = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTab, setCurrentTab] = useState("upload");
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -41,7 +40,7 @@ const ImageTextExtractor = () => {
 
     if (validFiles.length > 0) {
       setImages([...images, ...validFiles]);
-      
+
       // Create URLs for the new images
       const newUrls = validFiles.map((file) => URL.createObjectURL(file));
       setImageUrls([...imageUrls, ...newUrls]);
@@ -59,16 +58,16 @@ const ImageTextExtractor = () => {
   const removeImage = (index: number) => {
     const newImages = [...images];
     const newImageUrls = [...imageUrls];
-    
+
     // Revoke the object URL to avoid memory leaks
     URL.revokeObjectURL(newImageUrls[index]);
-    
+
     newImages.splice(index, 1);
     newImageUrls.splice(index, 1);
-    
+
     setImages(newImages);
     setImageUrls(newImageUrls);
-    
+
     if (activeImageIndex === index) {
       setActiveImageIndex(null);
     } else if (activeImageIndex !== null && activeImageIndex > index) {
@@ -91,28 +90,26 @@ const ImageTextExtractor = () => {
     setExtractedText("");
 
     try {
-      const worker = await createWorker({
-        logger: (m) => console.log(m),
-      });
+      const worker = await createWorker("eng");
 
       let combinedText = "";
 
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         await worker.load();
-        await worker.loadLanguage("eng");
-        await worker.initialize("eng");
-        
-        const { data: { text } } = await worker.recognize(image);
-        
+
+        const {
+          data: { text },
+        } = await worker.recognize(image);
+
         combinedText += `--- Image ${i + 1} ---\n${text}\n\n`;
       }
 
       await worker.terminate();
-      
+
       setExtractedText(combinedText.trim());
       setCurrentTab("results");
-      
+
       toast({
         title: "Text extraction complete",
         description: `Successfully extracted text from ${images.length} image(s).`,
@@ -121,7 +118,8 @@ const ImageTextExtractor = () => {
       console.error("Error extracting text:", error);
       toast({
         title: "Text extraction failed",
-        description: "An error occurred during text extraction. Please try again.",
+        description:
+          "An error occurred during text extraction. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -132,8 +130,9 @@ const ImageTextExtractor = () => {
   // Copy text to clipboard
   const copyToClipboard = () => {
     if (!extractedText) return;
-    
-    navigator.clipboard.writeText(extractedText)
+
+    navigator.clipboard
+      .writeText(extractedText)
       .then(() => {
         toast({
           title: "Copied to clipboard",
@@ -153,7 +152,7 @@ const ImageTextExtractor = () => {
   // Download text as file
   const downloadText = () => {
     if (!extractedText) return;
-    
+
     const blob = new Blob([extractedText], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -184,20 +183,20 @@ const ImageTextExtractor = () => {
           <TabsTrigger value="upload">Upload Images</TabsTrigger>
           <TabsTrigger value="results">Extracted Text</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="upload" className="space-y-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col space-y-4">
-                <div 
+                <div
                   className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition"
                   onClick={triggerFileInput}
                 >
-                  <input 
+                  <input
                     ref={fileInputRef}
-                    type="file" 
-                    accept="image/*" 
-                    multiple 
+                    type="file"
+                    accept="image/*"
+                    multiple
                     onChange={handleFileSelect}
                     className="hidden"
                   />
@@ -214,9 +213,11 @@ const ImageTextExtractor = () => {
                 {images.length > 0 && (
                   <div className="mt-6 space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium">Selected Images ({images.length})</h3>
-                      <Button 
-                        variant="outline" 
+                      <h3 className="font-medium">
+                        Selected Images ({images.length})
+                      </h3>
+                      <Button
+                        variant="outline"
                         onClick={extractText}
                         disabled={isProcessing}
                       >
@@ -236,20 +237,22 @@ const ImageTextExtractor = () => {
 
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {imageUrls.map((url, index) => (
-                        <div 
-                          key={index} 
+                        <div
+                          key={index}
                           className={`relative group rounded-md overflow-hidden border ${
-                            activeImageIndex === index ? "ring-2 ring-primary" : ""
+                            activeImageIndex === index
+                              ? "ring-2 ring-primary"
+                              : ""
                           }`}
                           onClick={() => setActiveImageIndex(index)}
                         >
-                          <img 
-                            src={url} 
+                          <img
+                            src={url}
                             alt={`Selected image ${index + 1}`}
                             className="w-full h-32 object-cover"
                           />
                           <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                            <button 
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 removeImage(index);
@@ -271,22 +274,22 @@ const ImageTextExtractor = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="results" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between">
                 <span>Extracted Text</span>
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={copyToClipboard}
                     disabled={!extractedText}
                   >
                     <Copy className="h-4 w-4 mr-1" /> Copy
                   </Button>
-                  <Button 
+                  <Button
                     size="sm"
                     variant="outline"
                     onClick={downloadText}
@@ -303,23 +306,31 @@ const ImageTextExtractor = () => {
                   <div className="w-full md:w-1/3">
                     <Label className="mb-2 block">Selected Image</Label>
                     <div className="border rounded-md overflow-hidden">
-                      <img 
-                        src={imageUrls[activeImageIndex]} 
+                      <img
+                        src={imageUrls[activeImageIndex]}
                         alt="Selected image"
                         className="w-full object-contain max-h-96"
                       />
                     </div>
                   </div>
                 )}
-                
-                <div className={`w-full ${activeImageIndex !== null ? "md:w-2/3" : ""}`}>
-                  <Label htmlFor="extractedText" className="mb-2 block">Text Content</Label>
+
+                <div
+                  className={`w-full ${
+                    activeImageIndex !== null ? "md:w-2/3" : ""
+                  }`}
+                >
+                  <Label htmlFor="extractedText" className="mb-2 block">
+                    Text Content
+                  </Label>
                   <Textarea
                     id="extractedText"
                     value={extractedText}
                     onChange={(e) => setExtractedText(e.target.value)}
                     className="h-96 font-mono"
-                    placeholder={extractedText ? "" : "Extracted text will appear here..."}
+                    placeholder={
+                      extractedText ? "" : "Extracted text will appear here..."
+                    }
                   />
                 </div>
               </div>
