@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { NewsCategories, NewsFilters } from '@/types/news';
+import { NewsCategories } from '@/types/news';
+import type { NewsFilters as NewsFiltersType } from '@/types/news';
 import {
   Select,
   SelectContent,
@@ -9,11 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SortAsc, SortDesc, Filter } from 'lucide-react';
+import { SortAsc, SortDesc } from 'lucide-react';
 
 interface NewsFiltersProps {
-  filters: NewsFilters;
-  onFiltersChange: (filters: NewsFilters) => void;
+  filters: NewsFiltersType;
+  onFiltersChange: (filters: NewsFiltersType) => void;
 }
 
 export const NewsFilters = ({ filters, onFiltersChange }: NewsFiltersProps) => {
