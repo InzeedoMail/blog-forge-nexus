@@ -101,14 +101,15 @@ const Sidebar = () => {
             <h2 className="font-semibold text-xl">{APP_NAME}</h2>
           </div>
           <div className="pt-4">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search..."
-              className="h-9"
-              // Fix: Use prefixIcon prop instead of prefix for Input component
-              prefixIcon={<Search className="h-4 w-4 text-muted-foreground" />}
-            />
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                className="h-9 pl-8"
+              />
+            </div>
           </div>
         </SidebarHeader>
 
