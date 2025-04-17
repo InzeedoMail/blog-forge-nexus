@@ -24,3 +24,11 @@ export interface SubscriptionTier {
     advancedFeatures: boolean;
   };
 }
+
+export interface UserUsage {
+  contentGeneration: number;
+  imageGeneration: number;
+  codeAnalysis: number;
+  ocrUsage: number;
+  translationUsage: number;
+}

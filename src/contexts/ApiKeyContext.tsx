@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -23,11 +22,9 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load credentials when user is authenticated
     if (isAuthenticated && user) {
       loadCredentials();
     } else {
-      // Clear credentials when user logs out
       setCredentials({});
       setApiKeyStatuses([]);
     }
@@ -37,19 +34,14 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       if (!user?.id) return;
       
-      // First try to get from local storage (temporary solution for quick access)
       const cachedCredentials = secureStorage.getItem<APICredentials>("apiCredentials", {});
       
-      // Always fetch the latest from the database
       const { data, error } = await supabase
         .from('user_api_keys')
-        .select('key_type, key_value')
+        .select('*')
         .eq('user_id', user.id);
       
-      if (error) {
-        console.error("Error loading API keys:", error);
-        return;
-      }
+      if (error) throw error;
       
       const fetchedCredentials: APICredentials = {};
       const statuses: ApiKeyStatus[] = [];
@@ -66,16 +58,11 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           });
         });
         
-        // Update local state with fetched credentials
         setCredentials(fetchedCredentials);
-        
-        // Cache in secure storage for quick access
         secureStorage.setItem("apiCredentials", fetchedCredentials);
       } else if (Object.keys(cachedCredentials).length > 0) {
-        // Use cached credentials if available
         setCredentials(cachedCredentials);
         
-        // Generate statuses for cached credentials
         Object.keys(cachedCredentials).forEach(key => {
           statuses.push({
             key: key as keyof APICredentials,
@@ -85,10 +72,9 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
       }
       
-      // Initialize statuses for all credential types
       const allKeys: (keyof APICredentials)[] = [
         'openaiApiKey', 
-        'geminiApiKey', 
+        'geminiApiKey',
         'deepseekApiKey',
         'googleApiKey',
         'leonardoApiKey'
@@ -116,7 +102,6 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw new Error("User not authenticated");
       }
       
-      // Update API key status to loading
       setApiKeyStatuses(prev => 
         prev.map(status => 
           status.key === key 
@@ -125,7 +110,6 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         )
       );
       
-      // Update in database
       const { error } = await supabase
         .from('user_api_keys')
         .upsert({
@@ -141,17 +125,13 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw error;
       }
       
-      // Update local state
       setCredentials(prev => ({ ...prev, [key]: value }));
       
-      // Update in secure storage
       const storedCredentials = secureStorage.getItem<APICredentials>("apiCredentials", {});
       secureStorage.setItem("apiCredentials", { ...storedCredentials, [key]: value });
       
-      // Validate the credential
       const isValid = await validateCredential(key);
       
-      // Update API key status
       setApiKeyStatuses(prev => 
         prev.map(status => 
           status.key === key 
@@ -169,7 +149,6 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (error: any) {
       console.error(`Error setting ${key}:`, error);
       
-      // Update API key status to error
       setApiKeyStatuses(prev => 
         prev.map(status => 
           status.key === key 
@@ -194,7 +173,6 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw new Error("User not authenticated");
       }
       
-      // Delete from database
       const { error } = await supabase
         .from('user_api_keys')
         .delete()
@@ -204,13 +182,10 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         throw error;
       }
       
-      // Clear local state
       setCredentials({});
       
-      // Clear from secure storage
       secureStorage.removeItem("apiCredentials");
       
-      // Reset API key statuses
       const resetStatuses: ApiKeyStatus[] = [
         { key: 'openaiApiKey', isValid: false, loading: false },
         { key: 'geminiApiKey', isValid: false, loading: false },
@@ -244,7 +219,6 @@ export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const value = credentials[key];
       if (!value) return false;
       
-      // Call appropriate validation edge function
       const { data, error } = await supabase.functions.invoke('validate-api-key', {
         body: { keyType: key, keyValue: value }
       });
