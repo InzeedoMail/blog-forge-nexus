@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SortAsc, SortDesc } from 'lucide-react';
+import { motion } from "framer-motion";
 
 interface NewsFiltersProps {
   filters: NewsFiltersType;
@@ -26,12 +27,17 @@ export const NewsFilters = ({ filters, onFiltersChange }: NewsFiltersProps) => {
   };
 
   return (
-    <div className="flex flex-wrap gap-4 items-center bg-accent/20 p-4 rounded-lg">
+    <motion.div 
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-wrap gap-4 items-center bg-accent/20 p-4 rounded-lg shadow-sm"
+    >
       <Select 
         value={filters.sortBy} 
         onValueChange={(value) => onFiltersChange({ ...filters, sortBy: value as 'date' | 'relevance' })}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px] bg-background/60 backdrop-blur-sm">
           <SelectValue placeholder="Sort by..." />
         </SelectTrigger>
         <SelectContent>
@@ -44,7 +50,7 @@ export const NewsFilters = ({ filters, onFiltersChange }: NewsFiltersProps) => {
         variant="outline"
         size="icon"
         onClick={toggleSortOrder}
-        className="hover:bg-accent"
+        className="hover:bg-accent bg-background/60 backdrop-blur-sm"
       >
         {filters.sortOrder === 'asc' ? <SortAsc /> : <SortDesc />}
       </Button>
@@ -60,12 +66,16 @@ export const NewsFilters = ({ filters, onFiltersChange }: NewsFiltersProps) => {
                 : [...filters.categories, key];
               onFiltersChange({ ...filters, categories: newCategories });
             }}
-            className="text-sm"
+            className={`text-sm transition-all ${
+              filters.categories.includes(key) 
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 border-none text-white' 
+                : 'bg-background/60 backdrop-blur-sm'
+            }`}
           >
             {label}
           </Button>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 };

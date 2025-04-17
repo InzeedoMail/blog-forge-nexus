@@ -1,232 +1,131 @@
 
 import React, { useState, useTransition } from 'react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { NewsItem } from "@/types/news";
-import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Pin, Bookmark, Share2, ExternalLink, Tag, Calendar, Globe } from 'lucide-react';
+import { Clock, ExternalLink, Bookmark, BookmarkCheck } from 'lucide-react';
+import { motion } from "framer-motion";
+import { format, parseISO } from 'date-fns';
+import { Article } from '@/types/news';
+import { Link } from 'react-router-dom';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface NewsCardProps {
-  item: NewsItem;
-  onTranslate: (text: string) => Promise<string>;
-  selectedLanguage: string;
-  onPin: (item: NewsItem) => void;
+  article: Article;
+  isPinned: boolean;
+  onPin: (article: Article) => void;
+  translatedTitle?: string | null;
+  translatedDescription?: string | null;
+  isTranslating?: boolean;
+  index?: number;
 }
 
-export const NewsCard = ({ item, onTranslate, selectedLanguage, onPin }: NewsCardProps) => {
-  const [translatedTitle, setTranslatedTitle] = useState(item.title);
-  const [translatedDescription, setTranslatedDescription] = useState(item.description);
-  const [isTranslating, startTransition] = useTransition();
-  const { toast } = useToast();
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // Format date to be more readable
-  const formattedDate = () => {
-    try {
-      const date = new Date(item.pubDate);
-      return date.toLocaleDateString(undefined, { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (e) {
-      return item.pubDate;
-    }
-  };
-
-  const handleTranslateClick = () => {
-    if (isTranslating) return;
-    
-    startTransition(async () => {
-      try {
-        const newTitle = await onTranslate(item.title);
-        const newDesc = await onTranslate(item.description);
-        setTranslatedTitle(newTitle);
-        setTranslatedDescription(newDesc);
-        toast({
-          title: "Translation Complete",
-          description: `Content translated to ${
-            selectedLanguage === 'en' ? 'English' :
-            selectedLanguage === 'es' ? 'Spanish' :
-            selectedLanguage === 'fr' ? 'French' : 
-            selectedLanguage === 'ar' ? 'Arabic' :
-            selectedLanguage === 'ta' ? 'Tamil' : 
-            selectedLanguage === 'si' ? 'Sinhala' : 
-            selectedLanguage
-          }`,
-        });
-      } catch (error) {
-        console.error("Translation error:", error);
-        toast({
-          title: "Translation Failed",
-          description: "Could not translate the content. Please try again later.",
-          variant: "destructive",
-        });
-      }
+export const NewsCard = ({
+  article,
+  isPinned,
+  onPin,
+  translatedTitle,
+  translatedDescription,
+  isTranslating,
+  index = 0
+}: NewsCardProps) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  
+  const handlePinClick = () => {
+    // Use startTransition without async/await to fix the type error
+    startTransition(() => {
+      onPin(article);
     });
   };
 
-  const handleShareClick = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: item.title,
-          text: item.description,
-          url: item.link,
-        });
-      } else {
-        await navigator.clipboard.writeText(item.link);
-        toast({
-          title: "Link Copied",
-          description: "Article link copied to clipboard",
-        });
-      }
-    } catch (error) {
-      console.error("Error sharing:", error);
-    }
-  };
-
-  const truncateText = (text: string, maxLength: number) => {
-    if (!text) return '';
-    return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
-  };
+  // Format the date in a readable format
+  const formattedDate = article.publishedAt ? 
+    format(parseISO(article.publishedAt), 'MMM dd, yyyy') : 
+    'Date unavailable';
 
   return (
-    <Card className={`h-full flex flex-col transition-all duration-300 hover:shadow-md ${
-      item.pinned ? 'border-primary border-2' : ''
-    }`}>
-      {item.imageUrl && (
-        <div className="relative w-full h-40 overflow-hidden rounded-t-lg">
-          <img 
-            src={item.imageUrl || 'https://via.placeholder.com/400x200?text=No+Image'} 
-            alt={item.title} 
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-            onError={(e) => {
-              (e.target as HTMLImageElement).onerror = null;
-              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x200?text=No+Image';
-            }}
-          />
-          <div className="absolute top-2 right-2">
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+    >
+      <Card className="h-full flex flex-col overflow-hidden hover:shadow-md transition-shadow duration-300 border">
+        <CardHeader className="p-4 pb-2 relative">
+          <div className="absolute top-4 right-4 z-10">
             <Button
-              variant={item.pinned ? "default" : "outline"}
+              variant="ghost"
               size="icon"
-              onClick={() => onPin(item)}
-              className={`rounded-full bg-background/80 hover:bg-background ${
-                item.pinned ? 'text-background bg-primary' : 'text-muted-foreground'
-              }`}
+              className={`rounded-full ${isPinned ? 'text-primary' : 'text-muted-foreground'}`}
+              onClick={handlePinClick}
+              disabled={isPending}
             >
-              <Pin className={`h-4 w-4 ${item.pinned ? 'fill-current' : ''}`} />
+              {isPinned ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
             </Button>
           </div>
-        </div>
-      )}
-      
-      <CardHeader className={!item.imageUrl ? "rounded-t-lg" : ""}>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-          <Badge variant="outline" className="px-1.5 py-0">
-            <Calendar className="h-3 w-3 mr-1" />
-            {formattedDate()}
-          </Badge>
-          {item.source && (
-            <Badge variant="secondary" className="px-1.5 py-0">
-              {item.source}
-            </Badge>
-          )}
-        </div>
+          <div className="relative aspect-video w-full overflow-hidden rounded-t-lg">
+            {!imageLoaded && <Skeleton className="absolute inset-0 h-full w-full" />}
+            {article.urlToImage ? (
+              <img
+                src={article.urlToImage}
+                alt={article.title || "News image"}
+                className={`h-full w-full object-cover transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageLoaded(true)}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-muted">
+                <span className="text-muted-foreground">No image available</span>
+              </div>
+            )}
+          </div>
+          <div className="mt-3 flex items-center space-x-2 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span>{formattedDate}</span>
+            {article.source?.name && (
+              <>
+                <span>•</span>
+                <span>{article.source.name}</span>
+              </>
+            )}
+          </div>
+          <CardTitle className="mt-2 line-clamp-2 text-lg font-bold hover:text-primary">
+            {isTranslating ? (
+              <Skeleton className="h-6 w-full mb-1" />
+            ) : translatedTitle || article.title}
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="p-4 pt-0 flex-grow">
+          <p className="line-clamp-3 text-sm text-muted-foreground">
+            {isTranslating ? (
+              <>
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-[80%]" />
+              </>
+            ) : translatedDescription || article.description || "No description available."}
+          </p>
+        </CardContent>
         
-        <CardTitle className="text-base sm:text-lg line-clamp-2">
-          {translatedTitle}
-        </CardTitle>
-        
-        {item.keywords && item.keywords.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {item.keywords.slice(0, 3).map((keyword, idx) => (
-              <Badge key={idx} variant="outline" className="text-xs px-1 py-0 bg-accent/10">
+        <CardFooter className="p-4 pt-0 flex flex-col items-start space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {article.keywords && article.keywords.slice(0, 3).map((keyword, i) => (
+              <Badge key={i} variant="secondary" className="px-2 py-0.5 text-xs font-normal">
                 {keyword}
               </Badge>
             ))}
-            {item.keywords.length > 3 && (
-              <Badge variant="outline" className="text-xs px-1 py-0">
-                +{item.keywords.length - 3}
-              </Badge>
-            )}
           </div>
-        )}
-      </CardHeader>
-      
-      <CardContent className="flex-grow flex flex-col justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground mb-4">
-            {isExpanded ? translatedDescription : truncateText(translatedDescription, 150)}
-            {translatedDescription && translatedDescription.length > 150 && (
-              <Button 
-                variant="link" 
-                className="p-0 h-auto text-xs"
-                onClick={() => setIsExpanded(!isExpanded)}
-              >
-                {isExpanded ? 'Show less' : 'Read more'}
-              </Button>
-            )}
-          </p>
-          
-          {item.tags && item.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 my-2">
-              <Tag className="h-3 w-3 text-muted-foreground" />
-              {item.tags.map((tag, index) => (
-                <Badge key={index} variant="outline" className="text-xs bg-secondary/5 px-1.5 py-0">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
-        
-        <div className="flex flex-wrap gap-2 mt-4">
-          <Button variant="outline" size="sm" className="flex-grow" asChild>
-            <a href={item.link} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5 mr-1" />
-              Read
-            </a>
-          </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={handleTranslateClick} 
-            disabled={isTranslating} 
-            className="flex-grow"
+          <a 
+            href={article.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-sm font-medium text-primary hover:underline"
           >
-            <Globe className="h-3.5 w-3.5 mr-1" />
-            {isTranslating ? 'Translating...' : 'Translate'}
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleShareClick} 
-            className="flex-grow"
-          >
-            <Share2 className="h-3.5 w-3.5 mr-1" />
-            Share
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => onPin(item)} 
-            className={`${item.pinned ? 'text-primary' : ''}`}
-            title={item.pinned ? 'Unpin article' : 'Pin article'}
-          >
-            <Bookmark className={`h-3.5 w-3.5 ${item.pinned ? 'fill-primary' : ''}`} />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+            Read more <ExternalLink className="ml-1 h-3.5 w-3.5" />
+          </a>
+        </CardFooter>
+      </Card>
+    </motion.div>
   );
 };
