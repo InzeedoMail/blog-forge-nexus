@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useApiKeys } from "@/contexts/ApiKeyContext";
+import { useApiKey } from "@/contexts/ApiKeyContext";
 import { APICredentials } from "@/types/credentials";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,11 +20,11 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
   description,
   placeholder = "Enter your API key",
 }) => {
-  const { credentials, setCredential, apiKeyStatuses, validateCredential } = useApiKeys();
-  const [apiKey, setApiKey] = useState<string>(credentials[keyType] || "");
+  const { apiKeys, apiKeyStatuses, updateApiKey, validateApiKey } = useApiKey();
+  const [apiKey, setApiKey] = useState<string>(apiKeys[keyType] || "");
   const [validating, setValidating] = useState(false);
 
-  const status = apiKeyStatuses.find(status => status.key === keyType) || {
+  const status = apiKeyStatuses[keyType] || {
     key: keyType,
     isValid: false,
     loading: false,
@@ -33,7 +33,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
 
   const handleSave = async () => {
     if (!apiKey.trim()) return;
-    await setCredential(keyType, apiKey.trim());
+    await updateApiKey(keyType, apiKey.trim());
   };
 
   const handleValidate = async () => {
@@ -41,7 +41,7 @@ const ApiKeyForm: React.FC<ApiKeyFormProps> = ({
     
     setValidating(true);
     try {
-      const isValid = await validateCredential(keyType);
+      await validateApiKey(keyType, apiKey);
       setValidating(false);
     } catch (error) {
       console.error(`Error validating ${keyType}:`, error);

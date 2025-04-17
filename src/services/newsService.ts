@@ -1,8 +1,8 @@
-
 import { NewsItem, NewsFilters } from "@/types/news";
 import { supabase } from "@/integrations/supabase/client";
 
-const NEWS_API_KEY = process.env.NEWS_API_KEY;
+// Use import.meta.env instead of process.env for Vite projects
+const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY || localStorage.getItem('newsApiKey');
 const NEWS_API_URL = "https://newsapi.org/v2/everything";
 
 export const fetchNews = async (query: string, page: number = 1, pageSize: number = 10, keywords: string = ""): Promise<any> => {

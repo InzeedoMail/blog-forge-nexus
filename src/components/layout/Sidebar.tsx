@@ -106,7 +106,8 @@ const Sidebar = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
               className="h-9"
-              prefix={<Search className="h-4 w-4 text-muted-foreground" />}
+              // Fix: Use prefixIcon prop instead of prefix for Input component
+              prefixIcon={<Search className="h-4 w-4 text-muted-foreground" />}
             />
           </div>
         </SidebarHeader>
