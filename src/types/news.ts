@@ -1,41 +1,39 @@
-export interface NewsItem {
-  title: string;
-  description: string;
-  link: string;
-  pubDate: string;
-  source: string;
-  imageUrl?: string;
-  tags?: string[];
-  keywords?: string[];
-  pinned?: boolean;
+
+export interface NewsSource {
+  id: string;
+  name: string;
 }
 
-export const NewsCategories = {
-  srilanka: "Sri Lanka News",
-  world: "World News",
-  gaza: "Gaza Updates",
-  israel: "Israel News",
-  tech: "Technology",
-} as const;
+export interface NewsItem {
+  source: NewsSource;
+  author: string | null;
+  title: string;
+  description: string | null;
+  url: string;
+  urlToImage: string | null;
+  publishedAt: string;
+  content: string | null;
+  pinned?: boolean;
+  link?: string;
+}
 
-export const languageOptions = [
-  { value: "en", label: "English" },
-  { value: "ta", label: "Tamil" },
-  { value: "si", label: "Sinhala" },
-  { value: "ar", label: "Arabic" },
-  { value: "fr", label: "French" },
-  { value: "es", label: "Spanish" },
-] as const;
+export interface NewsResponse {
+  status: string;
+  totalResults: number;
+  articles: NewsItem[];
+}
 
 export interface NewsFilters {
   search: string;
   categories: string[];
-  sortBy: 'date' | 'relevance';
-  sortOrder: 'asc' | 'desc';
+  sortBy: "date" | "relevance" | "popularity";
+  sortOrder: "asc" | "desc";
 }
 
 export interface TelegramNotification {
-  chatId: string;
-  keywords: string[];
-  categories: string[];
+  enabled: boolean;
+  botToken?: string;
+  chatId?: string;
+  keywords?: string[];
+  categories?: string[];
 }

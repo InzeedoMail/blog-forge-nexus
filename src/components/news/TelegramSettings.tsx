@@ -1,137 +1,127 @@
 
-import React, { useState, useEffect, FormEvent } from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-  SheetClose,
-} from "@/components/ui/sheet";
-import { Label } from "@/components/ui/label";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import {
-  AlertCircle,
-  CheckCircle,
-  Plus,
-  Save,
-  Trash2,
-  X
-} from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { NewsCategories } from '@/types/news';
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { SendHorizontal, Bot, AlertTriangle } from "lucide-react";
+import { TelegramNotification } from "@/types/news";
 
-interface TelegramSettings {
-  telegramChatId: string;
-  notifyOnKeywords: string[];
-  notifyOnCategories: string[];
+export interface TelegramSettingsProps {
+  onSave: (settings: TelegramNotification) => Promise<void>;
 }
 
-interface TelegramSettingsProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  settings: TelegramSettings;
-  onSaveSettings: (settings: TelegramSettings) => void;
-}
-
-export const TelegramSettings: React.FC<TelegramSettingsProps> = ({
-  isOpen,
-  onOpenChange,
-  settings,
-  onSaveSettings,
-}) => {
-  const [telegramChatId, setTelegramChatId] = useState(settings.telegramChatId);
-  const [notifyOnKeywords, setNotifyOnKeywords] = useState<string[]>(settings.notifyOnKeywords || []);
-  const [notifyOnCategories, setNotifyOnCategories] = useState<string[]>(settings.notifyOnCategories || []);
-  const [newKeyword, setNewKeyword] = useState("");
-  const { toast } = useToast();
+export const TelegramSettings: React.FC<TelegramSettingsProps> = ({ onSave }) => {
+  const [enabled, setEnabled] = useState(false);
+  const [botToken, setBotToken] = useState("");
+  const [chatId, setChatId] = useState("");
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [keywordInput, setKeywordInput] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setTelegramChatId(settings.telegramChatId);
-    setNotifyOnKeywords(settings.notifyOnKeywords || []);
-    setNotifyOnCategories(settings.notifyOnCategories || []);
-  }, [settings, isOpen]);
+    // Load saved settings from localStorage
+    const savedSettings = localStorage.getItem('telegramNotificationSettings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings) as TelegramNotification;
+        setEnabled(parsedSettings.enabled || false);
+        setBotToken(parsedSettings.botToken || "");
+        setChatId(parsedSettings.chatId || "");
+        setKeywords(parsedSettings.keywords || []);
+      } catch (error) {
+        console.error("Error loading Telegram settings:", error);
+      }
+    }
+  }, []);
+
+  const handleSaveSettings = async () => {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const settings: TelegramNotification = {
+        enabled,
+        botToken,
+        chatId,
+        keywords,
+      };
+
+      await onSave(settings);
+      setIsSaving(false);
+    } catch (error) {
+      console.error("Error saving Telegram settings:", error);
+      setError("Failed to save settings. Please try again.");
+      setIsSaving(false);
+    }
+  };
 
   const handleAddKeyword = () => {
-    if (newKeyword.trim() && !notifyOnKeywords.includes(newKeyword.trim())) {
-      setNotifyOnKeywords([...notifyOnKeywords, newKeyword.trim()]);
-      setNewKeyword("");
+    if (keywordInput.trim() && !keywords.includes(keywordInput.trim())) {
+      setKeywords([...keywords, keywordInput.trim()]);
+      setKeywordInput("");
     }
   };
 
   const handleRemoveKeyword = (keyword: string) => {
-    setNotifyOnKeywords(notifyOnKeywords.filter(k => k !== keyword));
-  };
-
-  const toggleCategory = (category: string) => {
-    if (notifyOnCategories.includes(category)) {
-      setNotifyOnCategories(notifyOnCategories.filter(c => c !== category));
-    } else {
-      setNotifyOnCategories([...notifyOnCategories, category]);
-    }
-  };
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    
-    const newSettings: TelegramSettings = {
-      telegramChatId,
-      notifyOnKeywords,
-      notifyOnCategories
-    };
-    
-    onSaveSettings(newSettings);
-    
-    toast({
-      title: "Settings saved",
-      description: "Your Telegram notification settings have been updated.",
-    });
+    setKeywords(keywords.filter(k => k !== keyword));
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md">
-        <form onSubmit={handleSubmit}>
-          <SheetHeader>
-            <SheetTitle>Telegram Notifications</SheetTitle>
-            <SheetDescription>
-              Configure when you want to receive news updates via Telegram.
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="grid gap-6 py-6">
-            <div className="grid gap-2">
-              <Label htmlFor="chatId">Telegram Chat ID</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="chatId"
-                  value={telegramChatId}
-                  onChange={(e) => setTelegramChatId(e.target.value)}
-                  placeholder="Enter your Telegram Chat ID"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                You can get your Chat ID from @userinfobot on Telegram.
-              </p>
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center text-lg">
+          <Bot className="mr-2 h-5 w-5" />
+          Telegram Notifications
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label htmlFor="telegram-notifications" className="font-medium">Enable Notifications</Label>
+            <p className="text-sm text-muted-foreground">Get notified about new articles on Telegram</p>
+          </div>
+          <Switch
+            id="telegram-notifications"
+            checked={enabled}
+            onCheckedChange={setEnabled}
+          />
+        </div>
+
+        {enabled && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="bot-token">Bot Token</Label>
+              <Input
+                id="bot-token"
+                type="password"
+                placeholder="123456789:ABCdefGHIjklMNoPQRsTUvwxYZ"
+                value={botToken}
+                onChange={(e) => setBotToken(e.target.value)}
+              />
             </div>
-            
-            <div className="grid gap-2">
-              <Label>Notify me about keywords</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="chat-id">Chat ID</Label>
+              <Input
+                id="chat-id"
+                placeholder="12345678"
+                value={chatId}
+                onChange={(e) => setChatId(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="keywords">Notification Keywords</Label>
               <div className="flex gap-2">
                 <Input
-                  value={newKeyword}
-                  onChange={(e) => setNewKeyword(e.target.value)}
-                  placeholder="Enter keyword"
+                  id="keywords"
+                  placeholder="Add keywords for notifications"
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -139,59 +129,40 @@ export const TelegramSettings: React.FC<TelegramSettingsProps> = ({
                     }
                   }}
                 />
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="icon"
-                  onClick={handleAddKeyword}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <Button type="button" onClick={handleAddKeyword} variant="outline">Add</Button>
               </div>
               
-              {notifyOnKeywords.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {notifyOnKeywords.map((keyword) => (
-                    <Badge key={keyword} variant="secondary" className="px-2 py-1">
-                      {keyword}
-                      <X
-                        className="ml-1 h-3 w-3 cursor-pointer"
-                        onClick={() => handleRemoveKeyword(keyword)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <div className="grid gap-2">
-              <Label>Notify me about categories</Label>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(NewsCategories).map(([key, label]) => (
-                  <Badge
-                    key={key}
-                    variant={notifyOnCategories.includes(key) ? "default" : "outline"}
-                    className="px-3 py-1 cursor-pointer"
-                    onClick={() => toggleCategory(key)}
-                  >
-                    {label}
+              <div className="flex flex-wrap gap-1 mt-2">
+                {keywords.map((keyword, index) => (
+                  <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => handleRemoveKeyword(keyword)}>
+                    {keyword} ×
                   </Badge>
                 ))}
+                {keywords.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No keywords added</p>
+                )}
               </div>
             </div>
-          </div>
-          
-          <SheetFooter>
-            <SheetClose asChild>
-              <Button type="button" variant="outline">Cancel</Button>
-            </SheetClose>
-            <Button type="submit">
-              <Save className="mr-2 h-4 w-4" />
-              Save Settings
-            </Button>
-          </SheetFooter>
-        </form>
-      </SheetContent>
-    </Sheet>
+
+            {error && (
+              <div className="flex items-center text-red-500 text-sm">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                {error}
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+      <CardFooter>
+        <Button 
+          onClick={handleSaveSettings} 
+          disabled={isSaving || (!enabled && !botToken && !chatId && keywords.length === 0)}
+          className="w-full"
+        >
+          <SendHorizontal className="mr-2 h-4 w-4" />
+          {isSaving ? "Saving..." : "Save Settings"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };

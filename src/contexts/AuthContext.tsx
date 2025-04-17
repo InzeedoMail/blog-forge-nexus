@@ -1,135 +1,309 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { jwtDecode } from "jwt-decode";
+import { secureStorage } from "@/utils/secureStorage";
 
-interface User {
+export interface UserProfile {
+  id: string;
   email: string;
-  name: string;
-  picture: string;
-  token: string;
-}
-
-// Define the expected JWT payload structure
-interface GoogleJwtPayload {
-  email: string;
-  name: string;
-  picture: string;
-  [key: string]: any; // For other properties that might be in the token
+  name?: string;
+  avatar_url?: string;
+  subscription_tier?: string;
+  subscription_status?: "active" | "trialing" | "past_due" | "cancelled" | "incomplete";
+  subscription_end_date?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
   isAuthenticated: boolean;
-  login: (response: any) => void;
-  logout: () => void;
-  getAccessToken: () => string | null;
+  isLoading: boolean;
+  user: UserProfile | null;
+  login: (credentials: { email: string; password: string }) => Promise<void>;
+  loginWithGoogle: (credential: any) => Promise<void>;
+  signup: (credentials: { email: string; password: string; name?: string }) => Promise<void>;
+  logout: () => Promise<void>;
+  updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// The email that is allowed to access the application
-const ALLOWED_EMAIL = "inzeedomail@gmail.com"; // Replace with your actual email
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user data exists in localStorage
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
+    // Check for existing session
+    const checkSession = async () => {
       try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error fetching session:", error);
+          return;
+        }
+
+        if (session) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const userProfile: UserProfile = {
+              id: user.id,
+              email: user.email || "",
+              name: user.user_metadata?.name,
+              avatar_url: user.user_metadata?.avatar_url,
+            };
+            setUser(userProfile);
+            setIsAuthenticated(true);
+            
+            // Fetch additional user profile data
+            await fetchUserProfile(userProfile);
+          }
+        }
       } catch (error) {
-        console.error("Failed to parse user from localStorage", error);
-        localStorage.removeItem("user");
+        console.error("Error during session check:", error);
+      } finally {
+        setIsLoading(false);
       }
-    }
-    setIsLoading(false);
+    };
+
+    const authListener = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const userProfile: UserProfile = {
+            id: user.id,
+            email: user.email || "",
+            name: user.user_metadata?.name,
+            avatar_url: user.user_metadata?.avatar_url,
+          };
+          setUser(userProfile);
+          setIsAuthenticated(true);
+          
+          // Fetch additional user profile data
+          await fetchUserProfile(userProfile);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsAuthenticated(false);
+        secureStorage.removeItem("userProfile");
+      }
+    });
+
+    checkSession();
+
+    return () => {
+      authListener.data.subscription.unsubscribe();
+    };
   }, []);
 
-  const login = (response: any) => {
+  const fetchUserProfile = async (baseProfile: UserProfile) => {
     try {
-      // Extract user info from Google response
-      console.log(response);
-      const decodedData = jwtDecode<GoogleJwtPayload>(response.credential);
+      // Fetch user profile from the profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', baseProfile.id)
+        .single();
 
-      // Store the access token for API calls
-      localStorage.setItem("accessToken", response.credential);
-
-      const { email, name, picture } = decodedData;
-      const token = response.credential;
-
-      // Verify if the user's email is allowed
-      if (email !== ALLOWED_EMAIL) {
-        toast({
-          title: "Access denied",
-          description: "You are not authorized to access this application.",
-          variant: "destructive",
-        });
+      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows returned
+        console.error("Error fetching user profile:", error);
         return;
       }
 
-      // Create user object
-      const userData: User = {
-        email,
-        name,
-        picture,
-        token,
-      };
-
-      // Save user to state and localStorage
-      setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
-
-      toast({
-        title: "Logged in successfully",
-        description: `Welcome back, ${name}!`,
-      });
+      if (data) {
+        const updatedProfile = {
+          ...baseProfile,
+          name: data.name || baseProfile.name,
+          avatar_url: data.avatar_url || baseProfile.avatar_url,
+          subscription_tier: data.subscription_tier,
+          subscription_status: data.subscription_status,
+          subscription_end_date: data.subscription_end_date,
+        };
+        
+        setUser(updatedProfile);
+        secureStorage.setItem("userProfile", updatedProfile);
+      }
     } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        title: "Login failed",
-        description: "There was an error during the login process.",
-        variant: "destructive",
-      });
+      console.error("Error processing user profile:", error);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("accessToken");
-    toast({
-      title: "Logged out",
-      description: "You have been logged out successfully.",
-    });
+  const login = async (credentials: { email: string; password: string }) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Login successful",
+        description: "You've been logged in successfully.",
+      });
+
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.message || "An error occurred during login.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Helper function to get the access token
-  const getAccessToken = (): string | null => {
-    return localStorage.getItem("accessToken");
+  const loginWithGoogle = async (credential: any) => {
+    try {
+      setIsLoading(true);
+
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: credential.credential,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Login successful",
+        description: "You've been logged in with Google successfully.",
+      });
+    } catch (error: any) {
+      console.error("Google login error:", error);
+      toast({
+        title: "Login failed",
+        description: error.message || "An error occurred during Google login.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        getAccessToken,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const signup = async (credentials: { email: string; password: string; name?: string }) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email: credentials.email,
+        password: credentials.password,
+        options: {
+          data: {
+            name: credentials.name || "",
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Registration successful",
+        description: "Please check your email to confirm your account.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Registration failed",
+        description: error.message || "An error occurred during registration.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Logout successful",
+        description: "You've been logged out successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Logout failed",
+        description: error.message || "An error occurred during logout.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (profile: Partial<UserProfile>) => {
+    try {
+      setIsLoading(true);
+      
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Update auth metadata if name is provided
+      if (profile.name) {
+        await supabase.auth.updateUser({
+          data: { name: profile.name }
+        });
+      }
+      
+      // Update profile in profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          name: profile.name || user.name,
+          avatar_url: profile.avatar_url || user.avatar_url,
+          updated_at: new Date().toISOString(),
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state
+      setUser(prev => prev ? { ...prev, ...profile } : null);
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message || "An error occurred while updating your profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const value = {
+    isAuthenticated,
+    isLoading,
+    user,
+    login,
+    loginWithGoogle,
+    signup,
+    logout,
+    updateProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
