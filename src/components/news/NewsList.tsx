@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/pagination";
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface NewsListProps {
   category: string;
@@ -37,12 +38,36 @@ export const NewsList = ({
 }: NewsListProps) => {
   const isMobile = useIsMobile();
   
+  // Loading skeletons for news cards
+  const LoadingSkeletons = () => (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, index) => (
+        <div key={`skeleton-${index}`} className="flex flex-col space-y-3 bg-card rounded-lg p-4 border">
+          <Skeleton className="h-48 w-full rounded-lg" />
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <div className="flex justify-between pt-2">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+  
+  // Empty state when no news is available
+  const EmptyState = () => (
+    <div className="min-h-[200px] flex flex-col items-center justify-center bg-muted/20 rounded-lg p-6 text-center">
+      <h3 className="text-lg font-medium mb-2">No news articles found</h3>
+      <p className="text-muted-foreground">Try adjusting your search keywords or filters</p>
+    </div>
+  );
+  
   if (isLoading) {
     return (
       <TabsContent value={category}>
-        <div className="min-h-[200px] flex items-center justify-center">
-          <p>Loading {category} news...</p>
-        </div>
+        <LoadingSkeletons />
       </TabsContent>
     );
   }
@@ -79,17 +104,21 @@ export const NewsList = ({
 
   return (
     <TabsContent value={category}>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {news?.map((item: NewsItem, index: number) => (
-          <NewsCard 
-            key={index} 
-            item={item} 
-            onTranslate={onTranslate}
-            selectedLanguage={selectedLanguage}
-            onPin={onPinNews}
-          />
-        ))}
-      </div>
+      {!news || news.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {news.map((item: NewsItem, index: number) => (
+            <NewsCard 
+              key={index} 
+              item={item} 
+              onTranslate={onTranslate}
+              selectedLanguage={selectedLanguage}
+              onPin={onPinNews}
+            />
+          ))}
+        </div>
+      )}
       
       {totalPages > 1 && (
         <Pagination className="my-8">

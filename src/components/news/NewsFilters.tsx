@@ -35,7 +35,7 @@ export const NewsFilters = ({ filters, onFiltersChange }: NewsFiltersProps) => {
     >
       <Select 
         value={filters.sortBy} 
-        onValueChange={(value) => onFiltersChange({ ...filters, sortBy: value as 'date' | 'relevance' })}
+        onValueChange={(value) => onFiltersChange({ ...filters, sortBy: value as 'date' | 'relevance' | 'popularity' })}
       >
         <SelectTrigger className="w-[180px] bg-background/60 backdrop-blur-sm">
           <SelectValue placeholder="Sort by..." />
@@ -43,6 +43,7 @@ export const NewsFilters = ({ filters, onFiltersChange }: NewsFiltersProps) => {
         <SelectContent>
           <SelectItem value="date">Date</SelectItem>
           <SelectItem value="relevance">Relevance</SelectItem>
+          <SelectItem value="popularity">Popularity</SelectItem>
         </SelectContent>
       </Select>
 
@@ -56,23 +57,23 @@ export const NewsFilters = ({ filters, onFiltersChange }: NewsFiltersProps) => {
       </Button>
 
       <div className="flex flex-wrap gap-2">
-        {Object.entries(NewsCategories).map(([key, label]) => (
+        {NewsCategories.map((category) => (
           <Button
-            key={key}
-            variant={filters.categories.includes(key) ? "default" : "outline"}
+            key={category}
+            variant={filters.categories.includes(category) ? "default" : "outline"}
             onClick={() => {
-              const newCategories = filters.categories.includes(key)
-                ? filters.categories.filter(c => c !== key)
-                : [...filters.categories, key];
+              const newCategories = filters.categories.includes(category)
+                ? filters.categories.filter(c => c !== category)
+                : [...filters.categories, category];
               onFiltersChange({ ...filters, categories: newCategories });
             }}
             className={`text-sm transition-all ${
-              filters.categories.includes(key) 
+              filters.categories.includes(category) 
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 border-none text-white' 
                 : 'bg-background/60 backdrop-blur-sm'
             }`}
           >
-            {label}
+            {category}
           </Button>
         ))}
       </div>

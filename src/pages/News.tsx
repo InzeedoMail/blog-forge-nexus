@@ -13,6 +13,7 @@ import { NewsItem, NewsFilters as NewsFiltersType, TelegramNotification } from "
 import { newsService } from "@/services/newsService";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -93,8 +94,20 @@ const News = () => {
       // Get preferred language from API or use selected language
       const targetLanguage = selectedLanguage;
       
+      // Check if we have a translation API key
+      const apiKey = import.meta.env.VITE_GOOGLE_TRANSLATE_API_KEY || localStorage.getItem('googleTranslateApiKey');
+      
+      if (!apiKey) {
+        toast({
+          title: "Translation API Key Missing",
+          description: "Please add a Google Translate API key in settings",
+          variant: "destructive",
+        });
+        return text;
+      }
+      
       const response = await fetch(
-        `https://translation.googleapis.com/language/translate/v2?key=${process.env.GOOGLE_TRANSLATE_API_KEY || localStorage.getItem('googleTranslateApiKey')}`,
+        `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
         {
           method: "POST",
           headers: {
@@ -191,36 +204,44 @@ const News = () => {
     }
   }, [toast]);
 
+  // Transform raw news data to NewsItem[] format
+  const processNewsData = useCallback((newsData: any): NewsItem[] => {
+    if (!newsData || !newsData.articles || !Array.isArray(newsData.articles)) {
+      return [];
+    }
+    return newsData.articles.map(newsService.transformNewsItem);
+  }, []);
+
   // Memoize current news data based on active tab
   const currentNews = useMemo(() => {
     switch (activeTab) {
       case "srilanka": return { 
-        data: srilankaNews?.articles, 
+        data: processNewsData(srilankaNews), 
         loading: loadingSL, 
         total: srilankaNews?.totalResults || 0 
       };
       case "world": return { 
-        data: worldNews?.articles, 
+        data: processNewsData(worldNews), 
         loading: loadingWorld, 
         total: worldNews?.totalResults || 0 
       };
       case "gaza": return { 
-        data: gazaNews?.articles, 
+        data: processNewsData(gazaNews), 
         loading: loadingGaza, 
         total: gazaNews?.totalResults || 0 
       };
       case "israel": return { 
-        data: israelNews?.articles, 
+        data: processNewsData(israelNews), 
         loading: loadingIsrael, 
         total: israelNews?.totalResults || 0 
       };
       case "tech": return { 
-        data: techNews?.articles, 
+        data: processNewsData(techNews), 
         loading: loadingTech, 
         total: techNews?.totalResults || 0 
       };
       default: return { 
-        data: srilankaNews?.articles, 
+        data: processNewsData(srilankaNews), 
         loading: loadingSL, 
         total: srilankaNews?.totalResults || 0 
       };
@@ -231,8 +252,32 @@ const News = () => {
     worldNews, loadingWorld, 
     gazaNews, loadingGaza, 
     israelNews, loadingIsrael, 
-    techNews, loadingTech
+    techNews, loadingTech,
+    processNewsData
   ]);
+
+  // Loading placeholder
+  if (loadingSL && loadingWorld && loadingGaza && loadingIsrael && loadingTech) {
+    return (
+      <div className="container mx-auto p-4 space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <Skeleton className="h-12 w-48" />
+          <Skeleton className="h-10 w-32 mt-4 md:mt-0" />
+        </div>
+        <Skeleton className="h-12 w-full my-4" />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(9)].map((_, i) => (
+            <div key={i} className="flex flex-col space-y-3">
+              <Skeleton className="h-48 w-full rounded-lg" />
+              <Skeleton className="h-6 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 space-y-6 max-w-7xl">
