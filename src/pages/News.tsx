@@ -37,14 +37,16 @@ const News = () => {
 
   // Load pinned news from localStorage on mount
   useEffect(() => {
-    const savedPinnedNews = localStorage.getItem('pinnedNews');
-    if (savedPinnedNews) {
+    const loadPinnedNews = async () => {
       try {
-        setPinnedNews(JSON.parse(savedPinnedNews));
+        const pinned = await newsService.fetchPinnedNews();
+        setPinnedNews(pinned);
       } catch (error) {
         console.error("Error loading pinned news:", error);
       }
-    }
+    };
+    
+    loadPinnedNews();
   }, []);
   
   // Save pinned news to localStorage when it changes
@@ -133,15 +135,17 @@ const News = () => {
   // Pin/unpin news functionality
   const handlePinNews = useCallback((item: NewsItem) => {
     setPinnedNews(prev => {
-      const isPinned = prev.some(news => news.link === item.link);
+      const isPinned = prev.some(news => news.url === item.url);
       
       if (isPinned) {
         toast({
           title: "Article Unpinned",
           description: "Article has been removed from pinned items",
         });
-        return prev.filter(news => news.link !== item.link);
+        return prev.filter(news => news.url !== item.url);
       }
+      
+      newsService.pinNewsItem({ ...item, pinned: true });
       
       toast({
         title: "Article Pinned",

@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -117,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: data.name || baseProfile.name,
           avatar_url: data.avatar_url || baseProfile.avatar_url,
           subscription_tier: data.subscription_tier,
-          subscription_status: data.subscription_status,
+          subscription_status: (data.subscription_status as "active" | "trialing" | "past_due" | "cancelled" | "incomplete") || "incomplete",
           subscription_end_date: data.subscription_end_date,
         };
         

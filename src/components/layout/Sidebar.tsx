@@ -1,15 +1,29 @@
-import React from "react";
+
+import React, { useState } from "react";
+import { useLocation, NavLink } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  SidebarProvider,
+  Sidebar as SidebarContainer,
+  SidebarContent,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
-  Menu,
   Home,
   LayoutDashboard,
   Settings,
@@ -17,97 +31,186 @@ import {
   Newspaper,
   FileText,
   Code,
-  PanelLeft,
+  Search,
+  LogOut,
+  MessageSquare,
+  BookOpen,
+  Coins,
+  History,
+  BarChart,
 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthContext";
 
-interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+const APP_NAME = "Blog Forge";
 
 const Sidebar = () => {
-  const { user } = useAuth();
-  
-  const navigation = [
-    { name: "Home", href: "/dashboard", icon: Home },
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const isMobile = useIsMobile();
+
+  const mainNavigation = [
+    { name: "Home", href: "/", icon: Home },
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Editor", href: "/editor", icon: FileText },
-    { name: "Article Paraphraser", href: "/article-paraphraser", icon: FileText },
+    { name: "News", href: "/news", icon: Newspaper },
     { name: "Image Generator", href: "/image-generator", icon: Image },
+  ];
+
+  const toolNavigation = [
+    { name: "Article Paraphraser", href: "/article-paraphraser", icon: BookOpen },
     { name: "Image Text Extractor", href: "/image-text-extractor", icon: FileText },
     { name: "File Analyzer", href: "/file-analyzer", icon: FileText },
     { name: "Code Reviewer", href: "/code-reviewer", icon: Code },
-    { name: "News", href: "/news", icon: Newspaper },
-    { name: "Blogger", href: "/blogger", icon: FileText },
-    { name: "Google Sheets", href: "/google-sheets", icon: FileText },
-    { name: "History", href: "/history", icon: FileText },
+    { name: "Blogger", href: "/blogger", icon: MessageSquare },
+    { name: "Google Sheets", href: "/google-sheets", icon: BarChart },
+  ];
+
+  const accountNavigation = [
+    { name: "History", href: "/history", icon: History },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
-  const location = useLocation();
-
-  const active = (href: string) => {
-    return location.pathname === href
-      ? "bg-secondary text-secondary-foreground"
-      : "hover:bg-secondary";
+  // Check if route is active
+  const isRouteActive = (href: string) => {
+    if (href === '/') {
+      return location.pathname === href;
+    }
+    return location.pathname.startsWith(href);
   };
 
-  const UserButton = ({ name, email, avatarUrl }: { name: string; email: string; avatarUrl?: string }) => (
-    <div className="flex items-center space-x-2 p-4 rounded-md">
-      <Avatar>
-        {avatarUrl ? (
-          <AvatarImage src={avatarUrl} alt={name} />
-        ) : (
-          <AvatarFallback>{name.substring(0, 2).toUpperCase()}</AvatarFallback>
-        )}
-      </Avatar>
-      <div>
-        <p className="text-sm font-medium">{name}</p>
-        <p className="text-xs text-muted-foreground">{email}</p>
-      </div>
-    </div>
-  );
-  
+  // Filter navigation items based on search
+  const filterItems = (items: typeof mainNavigation) => {
+    if (!searchQuery) return items;
+    return items.filter(item => 
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
+
+  const filteredMainNav = filterItems(mainNavigation);
+  const filteredToolNav = filterItems(toolNavigation);
+  const filteredAccountNav = filterItems(accountNavigation);
+
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <PanelLeft className="h-5 w-5" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-full sm:w-64">
-        <SheetHeader className="text-left">
-          <SheetTitle>Blog Forge</SheetTitle>
-          <SheetDescription>
-            Navigate through the application using the menu below.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="py-4">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              className={({ isActive }) =>
-                `flex items-center space-x-2 px-4 py-2 rounded-md ${
-                  isActive ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary"
-                }`
-              }
+    <SidebarProvider>
+      <SidebarContainer variant="floating" collapsible="icon" className="border-r">
+        <SidebarHeader className="p-4">
+          <div className="flex items-center gap-2">
+            <div className="rounded-md bg-primary p-1 flex items-center justify-center">
+              <span className="font-bold text-primary-foreground">BF</span>
+            </div>
+            <h2 className="font-semibold text-xl">{APP_NAME}</h2>
+          </div>
+          <div className="pt-4">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="h-9"
+              prefix={<Search className="h-4 w-4 text-muted-foreground" />}
+            />
+          </div>
+        </SidebarHeader>
+
+        <SidebarContent className="p-2">
+          <SidebarGroup>
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredMainNav.map((item) => (
+                  <SidebarMenuItem key={item.name}>
+                    <SidebarMenuButton
+                      tooltip={item.name}
+                      asChild
+                      isActive={isRouteActive(item.href)}
+                    >
+                      <NavLink to={item.href}>
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.name}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          
+          <Separator className="my-4" />
+          
+          <SidebarGroup>
+            <SidebarGroupLabel>Tools</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredToolNav.map((item) => (
+                  <SidebarMenuItem key={item.name}>
+                    <SidebarMenuButton
+                      tooltip={item.name}
+                      asChild
+                      isActive={isRouteActive(item.href)}
+                    >
+                      <NavLink to={item.href}>
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.name}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          
+          <Separator className="my-4" />
+          
+          <SidebarGroup>
+            <SidebarGroupLabel>Account</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredAccountNav.map((item) => (
+                  <SidebarMenuItem key={item.name}>
+                    <SidebarMenuButton
+                      tooltip={item.name}
+                      asChild
+                      isActive={isRouteActive(item.href)}
+                    >
+                      <NavLink to={item.href}>
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.name}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="border-t p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                {user?.avatar_url ? (
+                  <AvatarImage src={user.avatar_url} alt={user?.name || "User"} />
+                ) : (
+                  <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
+                )}
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">{user?.name || "User"}</span>
+                <span className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.email || ""}</span>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={logout}
+              title="Sign out"
+              className="hover:bg-red-100 hover:text-red-600"
             >
-              <item.icon className="h-4 w-4" />
-              <span>{item.name}</span>
-            </NavLink>
-          ))}
-        </div>
-        <UserButton
-          name={user?.name || "User"}
-          email={user?.email || ""}
-          avatarUrl={user?.avatar_url || ""}
-        />
-      </SheetContent>
-    </Sheet>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </SidebarFooter>
+      </SidebarContainer>
+    </SidebarProvider>
   );
 };
 

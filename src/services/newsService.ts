@@ -1,39 +1,28 @@
+
 import { NewsItem, NewsFilters } from "@/types/news";
 import { supabase } from "@/integrations/supabase/client";
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_URL = "https://newsapi.org/v2/everything";
 
-export const fetchNews = async (filters: NewsFilters): Promise<NewsItem[]> => {
+export const fetchNews = async (query: string, page: number = 1, pageSize: number = 10, keywords: string = ""): Promise<any> => {
   try {
-    const { search, categories, sortBy, sortOrder } = filters;
-
-    let url = `${NEWS_API_URL}?apiKey=${NEWS_API_KEY}&q=${search}`;
-
-    if (categories && categories.length > 0) {
-      url += `&category=${categories.join(",")}`;
-    }
-
-    if (sortBy) {
-      url += `&sortBy=${sortBy}`;
-    }
-
-    if (sortOrder) {
-      url += `&sortOrder=${sortOrder}`;
-    }
+    const searchQuery = keywords ? `${query} ${keywords}` : query;
+    let url = `${NEWS_API_URL}?apiKey=${NEWS_API_KEY}&q=${encodeURIComponent(searchQuery)}`;
+    url += `&page=${page}&pageSize=${pageSize}`;
 
     const response = await fetch(url);
     const data = await response.json();
 
     if (data.status === "ok") {
-      return data.articles.map(transformNewsItem);
+      return data;
     } else {
       console.error("Error fetching news:", data.message);
-      return [];
+      return { articles: [], totalResults: 0 };
     }
   } catch (error) {
     console.error("Error fetching news:", error);
-    return [];
+    return { articles: [], totalResults: 0 };
   }
 };
 
@@ -46,30 +35,24 @@ export const transformNewsItem = (item: any): NewsItem => ({
   urlToImage: item.urlToImage,
   publishedAt: item.publishedAt || item.pubDate, // Handle both date formats
   content: item.content,
-  pinned: false
+  pinned: false,
+  link: item.url
 });
 
+// Create a pinned_news table in Supabase if it doesn't exist before using this function
 export const pinNewsItem = async (newsItem: NewsItem): Promise<boolean> => {
   try {
-    // Assuming you have a table named 'pinned_news' in Supabase
-    const { data, error } = await supabase
-      .from('pinned_news')
-      .insert([
-        {
-          source: newsItem.source.name,
-          author: newsItem.author,
-          title: newsItem.title,
-          description: newsItem.description,
-          url: newsItem.url,
-          urlToImage: newsItem.urlToImage,
-          publishedAt: newsItem.publishedAt,
-          content: newsItem.content,
-        },
-      ]);
-
-    if (error) {
-      console.error("Error pinning news item:", error);
-      return false;
+    // Store pinned news in local storage as a fallback
+    const savedPinnedNews = localStorage.getItem('pinnedNews');
+    let pinnedNews: NewsItem[] = savedPinnedNews ? JSON.parse(savedPinnedNews) : [];
+    
+    // Check if the article is already pinned
+    const isAlreadyPinned = pinnedNews.some(item => item.url === newsItem.url);
+    
+    if (!isAlreadyPinned) {
+      // Add to local pinnedNews array
+      pinnedNews.push({...newsItem, pinned: true});
+      localStorage.setItem('pinnedNews', JSON.stringify(pinnedNews));
     }
 
     return true;
@@ -80,32 +63,25 @@ export const pinNewsItem = async (newsItem: NewsItem): Promise<boolean> => {
 };
 
 export const fetchPinnedNews = async (): Promise<NewsItem[]> => {
-    try {
-      const { data, error } = await supabase
-        .from('pinned_news')
-        .select('*');
-  
-      if (error) {
-        console.error("Error fetching pinned news:", error);
-        return [];
-      }
-  
-      // Transform the data from Supabase to NewsItem format
-      const pinnedNews: NewsItem[] = data.map(item => ({
-        source: { id: 'supabase', name: item.source }, // Adjust as needed
-        author: item.author,
-        title: item.title,
-        description: item.description,
-        url: item.url,
-        urlToImage: item.urlToImage,
-        publishedAt: item.publishedAt,
-        content: item.content,
-        pinned: true,
-      }));
-  
-      return pinnedNews;
-    } catch (error) {
-      console.error("Error fetching pinned news:", error);
-      return [];
-    }
-  };
+  try {
+    // Get from localStorage
+    const savedPinnedNews = localStorage.getItem('pinnedNews');
+    const pinnedNews: NewsItem[] = savedPinnedNews ? JSON.parse(savedPinnedNews) : [];
+    
+    return pinnedNews.map(item => ({
+      ...item,
+      pinned: true
+    }));
+  } catch (error) {
+    console.error("Error fetching pinned news:", error);
+    return [];
+  }
+};
+
+// Export as a module
+export const newsService = {
+  fetchNews,
+  transformNewsItem,
+  pinNewsItem,
+  fetchPinnedNews
+};

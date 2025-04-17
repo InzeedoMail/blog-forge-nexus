@@ -8,7 +8,7 @@ import { AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { Credentials } from '@/types/credentials';
+import { APICredentials } from "@/types/credentials";
 import { useCredentials } from '@/contexts/CredentialsContext';
 import { AIServiceFactory } from '@/services/serviceFactory';
 

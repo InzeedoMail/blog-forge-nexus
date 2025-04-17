@@ -23,8 +23,8 @@ export const NewsLanguageSelector = ({ selectedLanguage, onLanguageChange }: New
         </SelectTrigger>
         <SelectContent>
           {languageOptions.map((lang) => (
-            <SelectItem key={lang.value} value={lang.value}>
-              {lang.label}
+            <SelectItem key={lang.code} value={lang.code}>
+              {lang.name}
             </SelectItem>
           ))}
         </SelectContent>

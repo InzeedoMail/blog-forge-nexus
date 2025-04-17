@@ -1,256 +1,154 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "./AuthContext";
-import { secureStorage } from "@/utils/secureStorage";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+} from "react";
 import { APICredentials, ApiKeyStatus } from "@/types/credentials";
+import { useToast } from "@/hooks/use-toast";
 
-interface ApiKeyContextType {
-  credentials: APICredentials;
-  setCredential: (key: keyof APICredentials, value: string) => Promise<void>;
-  clearCredentials: () => Promise<void>;
-  validateCredential: (key: keyof APICredentials) => Promise<boolean>;
-  apiKeyStatuses: ApiKeyStatus[];
+interface ApiKeyContextProps {
+  apiKeys: APICredentials;
+  apiKeyStatuses: { [key in keyof APICredentials]?: ApiKeyStatus };
+  updateApiKey: (key: keyof APICredentials, value: string) => void;
+  validateApiKey: (key: keyof APICredentials, value: string) => Promise<void>;
+  validateAllApiKeys: () => Promise<void>;
 }
 
-const ApiKeyContext = createContext<ApiKeyContextType | undefined>(undefined);
+const ApiKeyContext = createContext<ApiKeyContextProps | undefined>(undefined);
 
-export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
-  const [credentials, setCredentials] = useState<APICredentials>({});
-  const [apiKeyStatuses, setApiKeyStatuses] = useState<ApiKeyStatus[]>([]);
+export const ApiKeyProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [apiKeys, setApiKeys] = useState<APICredentials>({
+    openaiApiKey: localStorage.getItem("openaiApiKey") || "",
+    geminiApiKey: localStorage.getItem("geminiApiKey") || "",
+    deepseekApiKey: localStorage.getItem("deepseekApiKey") || "",
+    googleApiKey: localStorage.getItem("googleApiKey") || "",
+    leonardoApiKey: localStorage.getItem("leonardoApiKey") || "",
+  });
+
+  const [apiKeyStatuses, setApiKeyStatuses] = useState<{
+    [key in keyof APICredentials]?: ApiKeyStatus;
+  }>({});
+
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      loadCredentials();
-    } else {
-      setCredentials({});
-      setApiKeyStatuses([]);
-    }
-  }, [isAuthenticated, user]);
+    loadApiKeys();
+  }, []);
 
-  const loadCredentials = async () => {
-    try {
-      if (!user?.id) return;
-      
-      const cachedCredentials = secureStorage.getItem<APICredentials>("apiCredentials", {});
-      
-      const { data, error } = await supabase
-        .from('user_api_keys')
-        .select('*')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      const fetchedCredentials: APICredentials = {};
-      const statuses: ApiKeyStatus[] = [];
-      
-      if (data && data.length > 0) {
-        data.forEach(item => {
-          const keyName = item.key_type as keyof APICredentials;
-          fetchedCredentials[keyName] = item.key_value;
-          
-          statuses.push({
-            key: keyName,
-            isValid: Boolean(item.key_value),
-            loading: false
-          });
-        });
-        
-        setCredentials(fetchedCredentials);
-        secureStorage.setItem("apiCredentials", fetchedCredentials);
-      } else if (Object.keys(cachedCredentials).length > 0) {
-        setCredentials(cachedCredentials);
-        
-        Object.keys(cachedCredentials).forEach(key => {
-          statuses.push({
-            key: key as keyof APICredentials,
-            isValid: Boolean(cachedCredentials[key as keyof APICredentials]),
-            loading: false
-          });
-        });
-      }
-      
-      const allKeys: (keyof APICredentials)[] = [
-        'openaiApiKey', 
-        'geminiApiKey',
-        'deepseekApiKey',
-        'googleApiKey',
-        'leonardoApiKey'
-      ];
-      
-      allKeys.forEach(key => {
-        if (!statuses.some(status => status.key === key)) {
-          statuses.push({
-            key,
-            isValid: false,
-            loading: false
-          });
-        }
-      });
-      
-      setApiKeyStatuses(statuses);
-    } catch (error) {
-      console.error("Error in loadCredentials:", error);
-    }
+  const loadApiKeys = () => {
+    setApiKeys({
+      openaiApiKey: localStorage.getItem("openaiApiKey") || "",
+      geminiApiKey: localStorage.getItem("geminiApiKey") || "",
+      deepseekApiKey: localStorage.getItem("deepseekApiKey") || "",
+      googleApiKey: localStorage.getItem("googleApiKey") || "",
+      leonardoApiKey: localStorage.getItem("leonardoApiKey") || "",
+    });
   };
 
-  const setCredential = async (key: keyof APICredentials, value: string) => {
+  const updateApiKey = (key: keyof APICredentials, value: string) => {
+    setApiKeys((prevApiKeys) => ({
+      ...prevApiKeys,
+      [key]: value,
+    }));
+    localStorage.setItem(key, value);
+  };
+
+  const validateApiKey = async (key: keyof APICredentials, value: string): Promise<void> => {
+    setApiKeyStatuses((prevStatuses) => ({
+      ...prevStatuses,
+      [key]: { key, isValid: false, loading: true, error: undefined },
+    }));
+
     try {
-      if (!user?.id) {
-        throw new Error("User not authenticated");
+      let isValid = false;
+      let errorMessage: string | undefined = undefined;
+
+      switch (key) {
+        case "openaiApiKey":
+          isValid = value.startsWith("sk-");
+          if (!isValid) errorMessage = "Invalid OpenAI API Key format.";
+          break;
+        case "geminiApiKey":
+          isValid = value.length > 0;
+          if (!isValid) errorMessage = "Invalid Gemini API Key format.";
+          break;
+        case "deepseekApiKey":
+          isValid = value.length > 0;
+          if (!isValid) errorMessage = "Invalid Deepseek API Key format.";
+          break;
+        case "googleApiKey":
+          isValid = value.length > 0;
+          if (!isValid) errorMessage = "Invalid Google API Key format.";
+          break;
+        case "leonardoApiKey":
+          isValid = value.length > 0;
+          if (!isValid) errorMessage = "Invalid Leonardo API Key format.";
+          break;
+        default:
+          console.warn("Unknown API key type:", key);
+          break;
       }
-      
-      setApiKeyStatuses(prev => 
-        prev.map(status => 
-          status.key === key 
-            ? { ...status, loading: true } 
-            : status
-        )
-      );
-      
-      const { error } = await supabase
-        .from('user_api_keys')
-        .upsert({
-          user_id: user.id,
-          key_type: key,
-          key_value: value,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,key_type'
+
+      setApiKeyStatuses((prevStatuses) => ({
+        ...prevStatuses,
+        [key]: { key, isValid, loading: false, error: errorMessage },
+      }));
+
+      if (!isValid && errorMessage) {
+        toast({
+          title: "Invalid API Key",
+          description: errorMessage,
+          variant: "destructive",
         });
-      
-      if (error) {
-        throw error;
       }
-      
-      setCredentials(prev => ({ ...prev, [key]: value }));
-      
-      const storedCredentials = secureStorage.getItem<APICredentials>("apiCredentials", {});
-      secureStorage.setItem("apiCredentials", { ...storedCredentials, [key]: value });
-      
-      const isValid = await validateCredential(key);
-      
-      setApiKeyStatuses(prev => 
-        prev.map(status => 
-          status.key === key 
-            ? { key, isValid, loading: false } 
-            : status
-        )
-      );
-      
-      toast({
-        title: "API key updated",
-        description: `Your ${key} has been updated successfully.`,
-      });
-      
-      return true;
     } catch (error: any) {
-      console.error(`Error setting ${key}:`, error);
-      
-      setApiKeyStatuses(prev => 
-        prev.map(status => 
-          status.key === key 
-            ? { key, isValid: false, loading: false, error: error.message } 
-            : status
-        )
-      );
-      
+      console.error("Error validating API key:", error);
+      setApiKeyStatuses((prevStatuses) => ({
+        ...prevStatuses,
+        [key]: {
+          key,
+          isValid: false,
+          loading: false,
+          error: error.message || "Failed to validate API key.",
+        },
+      }));
       toast({
-        title: "Error updating API key",
-        description: error.message || `Failed to update ${key}.`,
+        title: "API Key Validation Error",
+        description: error.message || "Failed to validate API key.",
         variant: "destructive",
       });
-      
-      return false;
     }
+    return undefined; // Make sure to return void
   };
 
-  const clearCredentials = async () => {
-    try {
-      if (!user?.id) {
-        throw new Error("User not authenticated");
-      }
-      
-      const { error } = await supabase
-        .from('user_api_keys')
-        .delete()
-        .eq('user_id', user.id);
-      
-      if (error) {
-        throw error;
-      }
-      
-      setCredentials({});
-      
-      secureStorage.removeItem("apiCredentials");
-      
-      const resetStatuses: ApiKeyStatus[] = [
-        { key: 'openaiApiKey', isValid: false, loading: false },
-        { key: 'geminiApiKey', isValid: false, loading: false },
-        { key: 'deepseekApiKey', isValid: false, loading: false },
-        { key: 'googleApiKey', isValid: false, loading: false },
-        { key: 'leonardoApiKey', isValid: false, loading: false }
-      ];
-      setApiKeyStatuses(resetStatuses);
-      
-      toast({
-        title: "Credentials cleared",
-        description: "All your API credentials have been removed.",
-      });
-      
-      return true;
-    } catch (error: any) {
-      console.error("Error clearing credentials:", error);
-      
-      toast({
-        title: "Error clearing credentials",
-        description: error.message || "Failed to clear your API credentials.",
-        variant: "destructive",
-      });
-      
-      return false;
+  const validateAllApiKeys = async (): Promise<void> => {
+    for (const key of Object.keys(apiKeys) as (keyof APICredentials)[]) {
+      await validateApiKey(key, apiKeys[key] || "");
     }
+    return undefined; // Make sure to return void
   };
 
-  const validateCredential = async (key: keyof APICredentials): Promise<boolean> => {
-    try {
-      const value = credentials[key];
-      if (!value) return false;
-      
-      const { data, error } = await supabase.functions.invoke('validate-api-key', {
-        body: { keyType: key, keyValue: value }
-      });
-      
-      if (error) throw new Error(error.message);
-      
-      return data?.isValid || false;
-    } catch (error) {
-      console.error(`Error validating ${key}:`, error);
-      return false;
-    }
+  const contextValue: ApiKeyContextProps = {
+    apiKeys,
+    apiKeyStatuses,
+    updateApiKey,
+    validateApiKey,
+    validateAllApiKeys,
   };
 
   return (
-    <ApiKeyContext.Provider
-      value={{
-        credentials,
-        setCredential,
-        clearCredentials,
-        validateCredential,
-        apiKeyStatuses
-      }}
-    >
-      {children}
-    </ApiKeyContext.Provider>
+    <ApiKeyContext.Provider value={contextValue}>{children}</ApiKeyContext.Provider>
   );
 };
 
-export const useApiKeys = () => {
+export const useApiKey = (): ApiKeyContextProps => {
   const context = useContext(ApiKeyContext);
-  if (context === undefined) {
-    throw new Error("useApiKeys must be used within an ApiKeyProvider");
+  if (!context) {
+    throw new Error("useApiKey must be used within a ApiKeyProvider");
   }
   return context;
 };
