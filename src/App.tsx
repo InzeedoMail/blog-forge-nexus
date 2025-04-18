@@ -1,5 +1,4 @@
-
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import AppLayout from "./components/layout/AppLayout";
 import AuthGuard from "./components/auth/AuthGuard";
@@ -28,7 +27,6 @@ import { CredentialsProvider } from "@/contexts/CredentialsContext";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Initialize the query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -38,7 +36,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Google OAuth client ID
 const GOOGLE_CLIENT_ID = "your-google-client-id"; // Replace with your actual client ID in production
 
 function App() {
@@ -52,12 +49,10 @@ function App() {
                 <SubscriptionProvider>
                   <Router>
                     <Routes>
-                      {/* Public routes */}
                       <Route path="/" element={<Index />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/signup" element={<Signup />} />
 
-                      {/* Protected routes - require authentication */}
                       <Route
                         path="/"
                         element={
@@ -82,7 +77,6 @@ function App() {
                         <Route path="news" element={<News />} />
                       </Route>
 
-                      {/* Catch-all route */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Router>
