@@ -1,8 +1,9 @@
-import React, { ReactNode } from "react";
+
+import React from "react";
 import { motion } from "framer-motion";
 import { Outlet } from "react-router-dom";
 import AppSidebar from "./Sidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -36,20 +37,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <AppSidebar />
         <main className="flex-1 overflow-auto">
           <div className="container p-4 sm:p-6 md:p-8">
-            <div className="flex items-center mb-6">
-              <SidebarTrigger className="md:hidden mr-4" />
-              <motion.div
-                initial="initial"
-                animate="in"
-                exit="out"
-                variants={pageVariants}
-                transition={pageTransition}
-                className="w-full"
-              >
-                {/* <Outlet /> */}
-                {children}
-              </motion.div>
-            </div>
+            <motion.div
+              initial="initial"
+              animate="in"
+              exit="out"
+              variants={pageVariants}
+              transition={pageTransition}
+              className="w-full"
+            >
+              {children || <Outlet />}
+            </motion.div>
           </div>
         </main>
       </div>

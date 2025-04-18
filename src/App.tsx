@@ -59,136 +59,28 @@ function App() {
 
                       {/* Protected routes - require authentication */}
                       <Route
-                        path="/dashboard"
+                        path="/"
                         element={
                           <AuthGuard>
                             <AppLayout>
-                              <Dashboard />
+                              <Outlet />
                             </AppLayout>
                           </AuthGuard>
                         }
-                      />
-
-                      <Route
-                        path="/editor"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <Editor />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/article-paraphraser"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <ArticleParaphraser />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/image-generator"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <ImageGenerator />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/blogger"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <Blogger />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/google-sheets"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <GoogleSheets />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/history"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <History />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/settings"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <Settings />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/image-text-extractor"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <ImageTextExtractor />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/file-analyzer"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <FileAnalyzer />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/code-reviewer"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <CodeReviewer />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-
-                      <Route
-                        path="/news"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <News />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
+                      >
+                        <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="editor" element={<Editor />} />
+                        <Route path="article-paraphraser" element={<ArticleParaphraser />} />
+                        <Route path="image-generator" element={<ImageGenerator />} />
+                        <Route path="blogger" element={<Blogger />} />
+                        <Route path="google-sheets" element={<GoogleSheets />} />
+                        <Route path="history" element={<History />} />
+                        <Route path="settings" element={<Settings />} />
+                        <Route path="image-text-extractor" element={<ImageTextExtractor />} />
+                        <Route path="file-analyzer" element={<FileAnalyzer />} />
+                        <Route path="code-reviewer" element={<CodeReviewer />} />
+                        <Route path="news" element={<News />} />
+                      </Route>
 
                       {/* Catch-all route */}
                       <Route path="*" element={<NotFound />} />
