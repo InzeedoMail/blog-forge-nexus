@@ -26,8 +26,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     status: null,
   });
 
-  const createCheckoutSession = async (): Promise<string | null> => {
-    console.log("Creating checkout session (disabled)");
+  const createCheckoutSession = async (priceId: string): Promise<string | null> => {
+    console.log("Creating checkout session (disabled)", priceId);
     return null;
   };
 

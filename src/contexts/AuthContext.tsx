@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=guest"
   };
 
+  // Always authenticated with default user
   const [user] = useState<UserProfile | null>(defaultUser);
 
   // Simplified auth functions that do nothing

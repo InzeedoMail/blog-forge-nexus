@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import AppLayout from "./components/layout/AppLayout";
 import Index from "./pages/Index";
@@ -50,34 +50,73 @@ function App() {
                       {/* Public routes */}
                       <Route path="/" element={<Index />} />
 
-                      {/* Dashboard routes */}
-                      <Route
-                        path="/"
-                        element={
-                          <AppLayout>
-                            <Outlet />
-                          </AppLayout>
-                        }
-                      >
-                        <Route path="dashboard" element={<Dashboard />} />
-                        <Route path="editor" element={<Editor />} />
-                        <Route path="article-paraphraser" element={<ArticleParaphraser />} />
-                        <Route path="image-generator" element={<ImageGenerator />} />
-                        <Route path="blogger" element={<Blogger />} />
-                        <Route path="google-sheets" element={<GoogleSheets />} />
-                        <Route path="history" element={<History />} />
-                        <Route path="settings" element={<Settings />} />
-                        <Route path="image-text-extractor" element={<ImageTextExtractor />} />
-                        <Route path="file-analyzer" element={<FileAnalyzer />} />
-                        <Route path="code-reviewer" element={<CodeReviewer />} />
-                        <Route path="news" element={<News />} />
-                      </Route>
+                      {/* Dashboard and other routes */}
+                      <Route path="dashboard" element={
+                        <AppLayout>
+                          <Dashboard />
+                        </AppLayout>
+                      } />
+                      <Route path="editor" element={
+                        <AppLayout>
+                          <Editor />
+                        </AppLayout>
+                      } />
+                      <Route path="article-paraphraser" element={
+                        <AppLayout>
+                          <ArticleParaphraser />
+                        </AppLayout>
+                      } />
+                      <Route path="image-generator" element={
+                        <AppLayout>
+                          <ImageGenerator />
+                        </AppLayout>
+                      } />
+                      <Route path="blogger" element={
+                        <AppLayout>
+                          <Blogger />
+                        </AppLayout>
+                      } />
+                      <Route path="google-sheets" element={
+                        <AppLayout>
+                          <GoogleSheets />
+                        </AppLayout>
+                      } />
+                      <Route path="history" element={
+                        <AppLayout>
+                          <History />
+                        </AppLayout>
+                      } />
+                      <Route path="settings" element={
+                        <AppLayout>
+                          <Settings />
+                        </AppLayout>
+                      } />
+                      <Route path="image-text-extractor" element={
+                        <AppLayout>
+                          <ImageTextExtractor />
+                        </AppLayout>
+                      } />
+                      <Route path="file-analyzer" element={
+                        <AppLayout>
+                          <FileAnalyzer />
+                        </AppLayout>
+                      } />
+                      <Route path="code-reviewer" element={
+                        <AppLayout>
+                          <CodeReviewer />
+                        </AppLayout>
+                      } />
+                      <Route path="news" element={
+                        <AppLayout>
+                          <News />
+                        </AppLayout>
+                      } />
 
                       {/* Catch-all route */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
+                    <Toaster />
                   </Router>
-                  <Toaster />
                 </SubscriptionProvider>
               </AuthProvider>
             </CredentialsProvider>

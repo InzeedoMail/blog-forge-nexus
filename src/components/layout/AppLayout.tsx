@@ -1,7 +1,6 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Outlet } from "react-router-dom";
 import AppSidebar from "./Sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
@@ -45,7 +44,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               transition={pageTransition}
               className="w-full"
             >
-              {children || <Outlet />}
+              {children}
             </motion.div>
           </div>
         </main>

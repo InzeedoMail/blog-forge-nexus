@@ -67,11 +67,7 @@ const Signup = () => {
   const onSubmit = async (data: SignupFormValues) => {
     try {
       setIsSigningUp(true);
-      await signup({
-        email: data.email,
-        password: data.password,
-        name: data.name,
-      });
+      signup();
       
       toast({
         title: "Account created",
@@ -84,6 +80,19 @@ const Signup = () => {
     } finally {
       setIsSigningUp(false);
     }
+  };
+
+  const handleGoogleSuccess = () => {
+    loginWithGoogle();
+    navigate("/dashboard");
+  };
+
+  const handleGoogleError = () => {
+    toast({
+      title: "Signup failed",
+      description: "Google signup failed. Please try again.",
+      variant: "destructive",
+    });
   };
 
   return (
@@ -234,18 +243,8 @@ const Signup = () => {
             <div className="grid gap-2">
               <div className="flex justify-center">
                 <GoogleLogin
-                  onSuccess={(credentialResponse) => {
-                    loginWithGoogle(credentialResponse).catch((error) => {
-                      console.error("Google login error:", error);
-                    });
-                  }}
-                  onError={() => {
-                    toast({
-                      title: "Signup failed",
-                      description: "Google signup failed. Please try again.",
-                      variant: "destructive",
-                    });
-                  }}
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
                   useOneTap
                 />
               </div>
