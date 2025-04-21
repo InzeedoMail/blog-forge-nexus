@@ -39,31 +39,18 @@ export class BloggerService {
   async createPost(post: BloggerPost) {
     try {
       // Get the OAuth token from localStorage
-      const accessToken = localStorage.getItem("accessToken");
+      const accessToken = localStorage.getItem("google_access_token");
       
       if (!accessToken) {
+        console.log("OAuth token not found. Please login again.");
+        
         throw new Error("OAuth token not found. Please login again.");
       }
 
-      // First check if we can get the blog ID using the OAuth token
-      const blogRes = await fetch(
-        "https://www.googleapis.com/blogger/v3/users/self/blogs",
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (!blogRes.ok) {
-        // If this fails, the token might be invalid or expired
-        const errorData = await blogRes.json().catch(() => ({}));
-        throw new Error(`Failed to get blog details: ${blogRes.status}, message: ${errorData.error?.message || 'Token might be expired or invalid'}`);
-      }
 
       // Use the OAuth token to create the post
       const response = await fetch(
-        `https://www.googleapis.com/blogger/v3/blogs/${this.blogId}/posts/`,
+        `https://www.googleapis.com/blogger/v3/blogs/${this.blogId}/posts?key=AIzaSyC1udfq-a-JMUxVsq2yK-1NE3glqFvTkx0`,
         {
           method: "POST",
           headers: {

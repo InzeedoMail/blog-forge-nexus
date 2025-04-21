@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useCredentials } from "@/contexts/CredentialsContext";
@@ -259,7 +258,7 @@ const Editor = () => {
         const fullContent = generatedContent.imageUrl
           ? `${generatedContent.body}<p><img src="${generatedContent.imageUrl}" alt="${generatedContent.title}" /></p>`
           : generatedContent.body;
-            
+
         // Try to create the post
         await bloggerService.createPost({
           title: generatedContent.title,
@@ -274,16 +273,16 @@ const Editor = () => {
         });
 
         // Save to history in Google Sheets if configured
-        if (credentials.googleApiKey && credentials.googleSheetId) {
-          saveToSheets();
-        }
+        // if (credentials.googleApiKey && credentials.googleSheetId) {
+        //   saveToSheets();
+        // }
       } catch (error: any) {
         // Handle our special OAUTH_REQUIRED error
         if (error.type === "OAUTH_REQUIRED" && error.bloggerEditorUrl) {
           // Save to history first
-          if (credentials.googleApiKey && credentials.googleSheetId) {
-            await saveToSheets();
-          }
+          // if (credentials.googleApiKey && credentials.googleSheetId) {
+          //   await saveToSheets();
+          // }
 
           // Open Blogger in new tab
           window.open(error.bloggerEditorUrl, "_blank");
@@ -387,9 +386,11 @@ const Editor = () => {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>About Blogger Integration</AlertTitle>
         <AlertDescription>
-          Creating posts on Blogger requires OAuth authentication. When you click "Publish to Blogger,"
-          we'll try to use your login token. If needed, we'll open the Blogger editor in a new tab 
-          with your content ready to paste. Your content will also be saved to your content history.
+          Creating posts on Blogger requires OAuth authentication. When you
+          click "Publish to Blogger," we'll try to use your login token. If
+          needed, we'll open the Blogger editor in a new tab with your content
+          ready to paste. Your content will also be saved to your content
+          history.
         </AlertDescription>
       </Alert>
 
