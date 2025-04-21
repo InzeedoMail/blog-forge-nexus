@@ -56,6 +56,16 @@ interface ArticleMetadata {
   languageDetected: string;
 }
 
+interface ImageGenerationOptions {
+  prompt: string;
+  size?: "256x256" | "512x512" | "1024x1024";
+  n?: number;
+  detail?: string;
+  style?: string;
+  lighting?: string;
+
+}
+
 export class OpenAIService {
   private openai: OpenAIApi;
 
@@ -99,6 +109,8 @@ export class OpenAIService {
       }
       
       userPrompt += `\nThe content should include:
+      - A clear structure with sections and subsections
+      - Create a Outline of the content
       - An attention-grabbing headline (as an H1 at the top)
       - An engaging introduction that hooks the reader
       - Well-structured body with clear subheadings
@@ -184,6 +196,36 @@ export class OpenAIService {
       throw new Error("Failed to generate content with OpenAI");
     }
   }
+
+  // Update the OpenAIService class with this method:
+  async generateImage(prompt: string, options: ImageGenerationOptions): Promise<string> {
+    try {
+      const { size = "1024x1024", n = 1, style = "photorealistic", lighting = "soft lighting", detail = "highly detailed" } = options ;
+  
+      if (!prompt || prompt.trim().length === 0) {
+        throw new Error("No prompt provided for image generation");
+      }
+  
+      // Enhance prompt with visual cues
+      const enhancedPrompt = `${prompt.trim()}, ${style}, ${lighting}, ${detail}, cinematic composition`;
+  
+      const response = await this.openai.createImage({
+        prompt: enhancedPrompt,
+        n,
+        size,
+      });
+  
+      if (!response.data.data[0]?.url) {
+        throw new Error("No image URL returned from OpenAI");
+      }
+  
+      return response.data.data[0].url;
+    } catch (error) {
+      console.error("Error generating image with DALL-E:", error);
+      throw new Error(`Failed to generate image: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
+  
 
   async paraphraseContent(options: ParaphraseOptions): Promise<string> {
     try {
@@ -392,19 +434,19 @@ export class OpenAIService {
     }
   }
 
-  async generateImage(prompt: string) {
-    try {
-      const response = await this.openai.createImage({
-        prompt,
-        n: 1,
-        size: "1024x1024",
+  // async generateImage(prompt: string) {
+  //   try {
+  //     const response = await this.openai.createImage({
+  //       prompt,
+  //       n: 1,
+  //       size: "1024x1024",
         
-      });
+  //     });
 
-      return response.data.data[0].url;
-    } catch (error) {
-      console.error("Error generating image with DALL-E:", error);
-      throw new Error("Failed to generate image with DALL-E");
-    }
-  }
+  //     return response.data.data[0].url;
+  //   } catch (error) {
+  //     console.error("Error generating image with DALL-E:", error);
+  //     throw new Error("Failed to generate image with DALL-E");
+  //   }
+  // }
 }

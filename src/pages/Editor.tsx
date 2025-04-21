@@ -21,7 +21,6 @@ import {
   Loader2,
   FileText,
   ImageIcon,
-  Upload,
   Send,
   Tags,
   Globe2,
@@ -30,6 +29,8 @@ import {
   Code,
   FileSpreadsheet,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,29 +41,34 @@ const Editor = () => {
   const { credentials } = useCredentials();
   const { toast } = useToast();
 
-  // Basic content options
+  // Content options
   const [topic, setTopic] = useState("");
   const [length, setLength] = useState<"short" | "medium" | "long">("medium");
   const [model, setModel] = useState("openai");
-
-  // Advanced customization options
   const [audience, setAudience] = useState("general");
   const [tone, setTone] = useState("professional");
   const [contentType, setContentType] = useState("blog");
+  const [includeHtml, setIncludeHtml] = useState(false);
+
+  // SEO options
   const [seoKeywords, setSeoKeywords] = useState<string[]>([]);
   const [seoKeywordInput, setSeoKeywordInput] = useState("");
   const [seoCountry, setSeoCountry] = useState("global");
-  const [includeHtml, setIncludeHtml] = useState(false);
+
+  // Image options
+  const [generateImages, setGenerateImages] = useState(false);
+  const [imageCount, setImageCount] = useState(1);
+  const [imagePositions, setImagePositions] = useState<number[]>([]);
+  const [imagePrompts, setImagePrompts] = useState<string[]>([]);
 
   // UI states
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState("basic");
 
   // Generated content
   const [generatedContent, setGeneratedContent] = useState({
     title: "",
     body: "",
-    imageUrl: "",
+    images: [] as { url: string; prompt: string }[],
     seoDescription: "",
     seoKeywords: [] as string[],
     targetAudience: "",
@@ -85,6 +91,31 @@ const Editor = () => {
       e.preventDefault();
       handleAddKeyword();
     }
+  };
+
+  const handleImagePositionChange = (index: number, value: number) => {
+    const newPositions = [...imagePositions];
+    newPositions[index] = value;
+    setImagePositions(newPositions);
+  };
+
+  const handleImagePromptChange = (index: number, value: string) => {
+    const newPrompts = [...imagePrompts];
+    newPrompts[index] = value;
+    setImagePrompts(newPrompts);
+  };
+
+  const addImageOption = () => {
+    setImageCount(imageCount + 1);
+    setImagePositions([...imagePositions, Math.floor(Math.random() * 5) + 1]);
+    setImagePrompts([...imagePrompts, ""]);
+  };
+
+  const removeImageOption = (index: number) => {
+    if (imageCount <= 1) return;
+    setImageCount(imageCount - 1);
+    setImagePositions(imagePositions.filter((_, i) => i !== index));
+    setImagePrompts(imagePrompts.filter((_, i) => i !== index));
   };
 
   const generateContent = async () => {
@@ -115,8 +146,10 @@ const Editor = () => {
       );
 
       const contentService = aiFactory.getContentGenerationService();
+      const imageService = aiFactory.getImageGenerationService(); // Add this line
 
-      const result = await contentService.generateBlogPost({
+      // Prepare the content generation request
+      const contentRequest = {
         topic,
         length,
         audience,
@@ -125,14 +158,56 @@ const Editor = () => {
         seoKeywords,
         seoCountry,
         includeHtml,
-      });
+        generateImages,
+        imageCount,
+        imagePositions,
+        imagePrompts: generateImages ? imagePrompts : [],
+      };
 
+      // First generate the content
+      const result = await contentService.generateBlogPost(contentRequest);
+
+      // Then generate images if enabled
+      let generatedImages: { url: string; prompt: string }[] = [];
+      if (generateImages && imagePrompts.some((prompt) => prompt.trim())) {
+        const imagePromptsToUse = imagePrompts.map(
+          (prompt, index) =>
+            prompt.trim() ||
+            `Professional ${contentType} image about "${topic}" for position ${
+              index + 1
+            }`
+        );
+
+        // Generate all images in parallel
+        const imageGenerationPromises = imagePromptsToUse.map((prompt) =>
+          imageService
+            .generateImage(prompt, {
+              size: "512x512",
+              n: 1,
+              prompt,
+            })
+            .then((url) => ({ url, prompt }))
+            .catch((error) => {
+              console.error(
+                `Failed to generate image for prompt: ${prompt}`,
+                error
+              );
+              return null;
+            })
+        );
+
+        const imageResults = await Promise.all(imageGenerationPromises);
+        generatedImages = imageResults.filter(Boolean) as {
+          url: string;
+          prompt: string;
+        }[];
+      }
+
+      // Set the generated content
       setGeneratedContent({
-        ...generatedContent,
-        // Content is now directly available in result.content
-        title: result.content.split("\n")[0].replace(/^#\s*/, ""), // Extract title from first line
-        body: result.content, // The entire formatted content
-        // SEO metadata is now in result.seoMetadata
+        title: result.content.split("\n")[0].replace(/^#\s*/, ""),
+        body: result.content,
+        images: generatedImages,
         seoDescription: result.seoMetadata.description || "",
         seoKeywords: result.seoMetadata.keywords || [],
         targetAudience: result.seoMetadata.targetAudience || audience,
@@ -151,59 +226,6 @@ const Editor = () => {
           error instanceof Error
             ? error.message
             : "Failed to generate content. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const generateImage = async () => {
-    if (!generatedContent.title) {
-      toast({
-        title: "Title required",
-        description: "Please generate content first or enter a title.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!credentials.openaiApiKey) {
-      toast({
-        title: "API key missing",
-        description: "Please add your OpenAI API key in Settings.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-
-    try {
-      const aiFactory = new AIServiceFactory(credentials.openaiApiKey);
-      const imageService = aiFactory.getImageGenerationService();
-
-      const prompt = `Create a professional, high-quality ${contentType} image for an article titled "${generatedContent.title}" targeting ${audience} audience. The image should be clear, engaging, and suitable for professional use.`;
-
-      const imageUrl = await imageService.generateImage(prompt);
-
-      setGeneratedContent({
-        ...generatedContent,
-        imageUrl,
-      });
-
-      toast({
-        title: "Image generated",
-        description: "Content image has been generated successfully!",
-      });
-    } catch (error) {
-      console.error("Error generating image:", error);
-      toast({
-        title: "Image generation failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to generate image. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -242,70 +264,88 @@ const Editor = () => {
 
       const bloggerService = googleFactory.getBloggerService();
 
-      try {
-        // Check if there's an access token in localStorage
-        const accessToken = localStorage.getItem("accessToken");
-        if (!accessToken) {
-          toast({
-            title: "Authentication required",
-            description: "Please log in with your Google account first.",
-            variant: "destructive",
-          });
-          throw new Error("Authentication required");
-        }
+      // Check for access token
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        throw {
+          type: "OAUTH_REQUIRED",
+          message: "Google OAuth authentication required",
+        };
+      }
 
-        // Prepare the content with image if available
-        const fullContent = generatedContent.imageUrl
-          ? `${generatedContent.body}<p><img src="${generatedContent.imageUrl}" alt="${generatedContent.title}" /></p>`
-          : generatedContent.body;
+      // Prepare content with images if available
+      let fullContent = generatedContent.body;
 
-        // Try to create the post
-        await bloggerService.createPost({
-          title: generatedContent.title,
-          content: fullContent,
-          labels: [contentType, ...seoKeywords],
+      // Insert images at their specified positions if they exist
+      if (generatedContent.images.length > 0) {
+        const contentParts = generatedContent.body.split("\n");
+
+        generatedContent.images.forEach((image, index) => {
+          const position = imagePositions[index] || 1;
+          const insertIndex = Math.min(
+            Math.max(0, Math.floor(contentParts.length * (position / 5)) - 1),
+            contentParts.length
+          );
+
+          const imgTag = `<div class="generated-image">
+            <img src="${image.url}" alt="${generatedContent.title} - Image ${
+            index + 1
+          }" />
+            <p class="image-caption">${image.prompt}</p>
+          </div>`;
+
+          contentParts.splice(insertIndex, 0, imgTag);
         });
+
+        fullContent = contentParts.join("\n");
+      }
+
+      // Create the post
+      await bloggerService.createPost({
+        title: generatedContent.title,
+        content: fullContent,
+        labels: [
+          contentType,
+          ...seoKeywords,
+          ...generatedContent.seoKeywords,
+        ].slice(0, 20), // Blogger has a limit of 20 labels
+      });
+
+      toast({
+        title: "Published to Blogger",
+        description: "Your post has been published successfully!",
+      });
+
+      // Optionally save to sheets as a backup
+      // if (credentials.googleSheetId) {
+      //   await saveToSheets();
+      // }
+    } catch (error) {
+      console.error("Blogger publishing error:", error);
+
+      if (error.type === "OAUTH_REQUIRED") {
+        // Open Blogger editor with pre-filled content in new tab
+        const blogUrl = `https://www.blogger.com/blogger.g?blogID=${
+          credentials.bloggerBlogId
+        }#editor/target=post;postTitle=${encodeURIComponent(
+          generatedContent.title
+        )};postBody=${encodeURIComponent(generatedContent.body)};`;
+        window.open(blogUrl, "_blank");
 
         toast({
-          title: "Published to Blogger",
+          title: "Authentication Required",
           description:
-            "Your post has been published to your Blogger blog successfully!",
+            "Please authenticate with Google in the new tab and paste your content.",
+          variant: "default",
         });
-
-        // Save to history in Google Sheets if configured
-        // if (credentials.googleApiKey && credentials.googleSheetId) {
-        //   saveToSheets();
-        // }
-      } catch (error: any) {
-        // Handle our special OAUTH_REQUIRED error
-        if (error.type === "OAUTH_REQUIRED" && error.bloggerEditorUrl) {
-          // Save to history first
-          // if (credentials.googleApiKey && credentials.googleSheetId) {
-          //   await saveToSheets();
-          // }
-
-          // Open Blogger in new tab
-          window.open(error.bloggerEditorUrl, "_blank");
-
-          toast({
-            title: "Opening Blogger Editor",
-            description:
-              "We've opened the Blogger editor in a new tab. Please copy and paste your content there.",
-          });
-        } else {
-          throw error; // Re-throw if it's not our special error
-        }
+      } else {
+        toast({
+          title: "Publishing failed",
+          description:
+            error.message || "Failed to publish to Blogger. Please try again.",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error("Error publishing to Blogger:", error);
-      toast({
-        title: "Publishing failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to publish to Blogger. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setIsGenerating(false);
     }
@@ -324,8 +364,7 @@ const Editor = () => {
     if (!credentials.googleApiKey || !credentials.googleSheetId) {
       toast({
         title: "API credentials missing",
-        description:
-          "Please add your Google API key and Google Sheet ID in Settings.",
+        description: "Please add your Google API key and Sheet ID in Settings.",
         variant: "destructive",
       });
       return;
@@ -342,28 +381,33 @@ const Editor = () => {
 
       const sheetsService = googleFactory.getGoogleSheetsService();
 
-      await sheetsService.savePost({
-        title: generatedContent.title,
-        body: generatedContent.body,
-        imageUrl: generatedContent.imageUrl,
-        tags: [contentType, ...seoKeywords],
+      // Prepare the data for sheets
+      const rowData = {
         date: new Date().toISOString(),
-        status: "published",
-      });
+        title: generatedContent.title,
+        content: generatedContent.body,
+        contentType,
+        audience,
+        tone,
+        keywords: [...seoKeywords, ...generatedContent.seoKeywords].join(", "),
+        status: "draft",
+        wordCount: generatedContent.body.split(/\s+/).length,
+        images: generatedContent.images.length,
+        seoDescription: generatedContent.seoDescription,
+      };
+
+      await sheetsService.appendRow(rowData);
 
       toast({
         title: "Saved to Google Sheets",
-        description:
-          "Your content has been saved to Google Sheets successfully!",
+        description: "Your content has been saved successfully!",
       });
     } catch (error) {
-      console.error("Error saving to Google Sheets:", error);
+      console.error("Sheets save error:", error);
       toast({
         title: "Save failed",
         description:
-          error instanceof Error
-            ? error.message
-            : "Failed to save to Google Sheets. Please try again.",
+          error.message || "Failed to save to Google Sheets. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -396,233 +440,313 @@ const Editor = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
-          <CardContent className="pt-6">
-            <Tabs defaultValue="basic" onValueChange={setActiveTab}>
-              <TabsList className="mb-4 w-full">
-                <TabsTrigger value="basic" className="flex-1">
-                  Basic
-                </TabsTrigger>
-                <TabsTrigger value="advanced" className="flex-1">
-                  Advanced
-                </TabsTrigger>
-                <TabsTrigger value="seo" className="flex-1">
-                  SEO
-                </TabsTrigger>
-              </TabsList>
+          <CardContent className="pt-6 space-y-6">
+            {/* Content Basics Section */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Content Basics
+              </h3>
 
-              <TabsContent value="basic" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="topic">Topic or Title</Label>
+              <div className="space-y-2">
+                <Label htmlFor="topic">Topic or Title</Label>
+                <Input
+                  id="topic"
+                  placeholder="Enter your content topic or title"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contentType">Content Type</Label>
+                <Select value={contentType} onValueChange={setContentType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select content type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="blog">Blog Post</SelectItem>
+                    <SelectItem value="article">Article</SelectItem>
+                    <SelectItem value="product">Product Description</SelectItem>
+                    <SelectItem value="social">Social Media Post</SelectItem>
+                    <SelectItem value="newsletter">Newsletter</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="length">Content Length</Label>
+                <Select
+                  value={length}
+                  onValueChange={(value) =>
+                    setLength(value as "short" | "medium" | "long")
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select content length" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="short">Short (500-800 words)</SelectItem>
+                    <SelectItem value="medium">
+                      Medium (800-1200 words)
+                    </SelectItem>
+                    <SelectItem value="long">Long (1500-2000 words)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="model">AI Model</Label>
+                <Select value={model} onValueChange={setModel}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an AI model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem
+                      value="gemini"
+                      disabled={!credentials.geminiApiKey}
+                    >
+                      Google Gemini{" "}
+                      {!credentials.geminiApiKey && "(API key missing)"}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Content Customization Section */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Content Customization
+              </h3>
+
+              <div className="space-y-2">
+                <Label htmlFor="audience">Target Audience</Label>
+                <Select value={audience} onValueChange={setAudience}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select target audience" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="professional">Professionals</SelectItem>
+                    <SelectItem value="technical">Technical</SelectItem>
+                    <SelectItem value="beginners">Beginners</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tone">Content Tone</Label>
+                <Select value={tone} onValueChange={setTone}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select content tone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="friendly">Friendly</SelectItem>
+                    <SelectItem value="casual">Casual</SelectItem>
+                    <SelectItem value="humorous">Humorous</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="includeHtml"
+                  checked={includeHtml}
+                  onChange={(e) => setIncludeHtml(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="includeHtml">Include HTML formatting</Label>
+              </div>
+            </div>
+
+            {/* SEO Optimization Section */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <Globe2 className="h-4 w-4" />
+                SEO Optimization
+              </h3>
+
+              <div className="space-y-2">
+                <Label htmlFor="seoKeywords">SEO Keywords</Label>
+                <div className="flex gap-2">
                   <Input
-                    id="topic"
-                    placeholder="Enter your content topic or title"
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
+                    id="seoKeywords"
+                    placeholder="Add SEO keywords"
+                    value={seoKeywordInput}
+                    onChange={(e) => setSeoKeywordInput(e.target.value)}
+                    onKeyDown={handleKeywordKeyDown}
                   />
+                  <Button type="button" onClick={handleAddKeyword}>
+                    Add
+                  </Button>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="contentType">Content Type</Label>
-                  <Select value={contentType} onValueChange={setContentType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select content type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="blog">Blog Post</SelectItem>
-                      <SelectItem value="article">Article</SelectItem>
-                      <SelectItem value="product">
-                        Product Description
-                      </SelectItem>
-                      <SelectItem value="social">Social Media Post</SelectItem>
-                      <SelectItem value="newsletter">Newsletter</SelectItem>
-                      <SelectItem value="press">Press Release</SelectItem>
-                      <SelectItem value="tutorial">Tutorial</SelectItem>
-                      <SelectItem value="review">Review</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="length">Content Length</Label>
-                  <Select
-                    value={length}
-                    onValueChange={(value) =>
-                      setLength(value as "short" | "medium" | "long")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select content length" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="short">
-                        Short (500-800 words)
-                      </SelectItem>
-                      <SelectItem value="medium">
-                        Medium (800-1200 words)
-                      </SelectItem>
-                      <SelectItem value="long">
-                        Long (1500-2000 words)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="model">AI Model</Label>
-                  <Select value={model} onValueChange={setModel}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an AI model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="openai">OpenAI</SelectItem>
-                      <SelectItem
-                        value="gemini"
-                        disabled={!credentials.geminiApiKey}
+                {seoKeywords.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {seoKeywords.map((keyword, index) => (
+                      <div
+                        key={index}
+                        className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm flex items-center gap-1"
                       >
-                        Google Gemini{" "}
-                        {!credentials.geminiApiKey && "(API key missing)"}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="advanced" className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2" htmlFor="audience">
-                    <Users className="h-4 w-4" /> Target Audience
-                  </Label>
-                  <Select value={audience} onValueChange={setAudience}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select target audience" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="general">General</SelectItem>
-                      <SelectItem value="professional">
-                        Professionals
-                      </SelectItem>
-                      <SelectItem value="technical">Technical</SelectItem>
-                      <SelectItem value="beginners">Beginners</SelectItem>
-                      <SelectItem value="students">Students</SelectItem>
-                      <SelectItem value="seniors">Seniors</SelectItem>
-                      <SelectItem value="business">Business</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2" htmlFor="tone">
-                    <MessageSquareQuote className="h-4 w-4" /> Content Tone
-                  </Label>
-                  <Select value={tone} onValueChange={setTone}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select content tone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="professional">Professional</SelectItem>
-                      <SelectItem value="friendly">Friendly</SelectItem>
-                      <SelectItem value="casual">Casual</SelectItem>
-                      <SelectItem value="humorous">Humorous</SelectItem>
-                      <SelectItem value="formal">Formal</SelectItem>
-                      <SelectItem value="authoritative">
-                        Authoritative
-                      </SelectItem>
-                      <SelectItem value="educational">Educational</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Code className="h-4 w-4" />
-                    <Label htmlFor="format">Include HTML Formatting</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="includeHtml"
-                      checked={includeHtml}
-                      onChange={(e) => setIncludeHtml(e.target.checked)}
-                      className="rounded border-gray-300"
-                    />
-                    <Label htmlFor="includeHtml">
-                      Output with HTML tags (headings, paragraphs, etc.)
-                    </Label>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="seo" className="space-y-4">
-                <div className="space-y-2">
-                  <Label
-                    className="flex items-center gap-2"
-                    htmlFor="seoKeywords"
-                  >
-                    <Tags className="h-4 w-4" /> SEO Keywords
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="seoKeywords"
-                      placeholder="Add SEO keywords"
-                      value={seoKeywordInput}
-                      onChange={(e) => setSeoKeywordInput(e.target.value)}
-                      onKeyDown={handleKeywordKeyDown}
-                    />
-                    <Button type="button" onClick={handleAddKeyword}>
-                      Add
-                    </Button>
-                  </div>
-                  {seoKeywords.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {seoKeywords.map((keyword, index) => (
-                        <div
-                          key={index}
-                          className="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm flex items-center gap-1"
+                        {keyword}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveKeyword(keyword)}
+                          className="text-secondary-foreground/70 hover:text-secondary-foreground"
                         >
-                          {keyword}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveKeyword(keyword)}
-                            className="text-secondary-foreground/70 hover:text-secondary-foreground"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="seoCountry">SEO Country Optimization</Label>
+                <Select value={seoCountry} onValueChange={setSeoCountry}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select country for SEO" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">
+                      Global (No specific country)
+                    </SelectItem>
+                    <SelectItem value="US">United States</SelectItem>
+                    <SelectItem value="UK">United Kingdom</SelectItem>
+                    <SelectItem value="Canada">Canada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Image Generation Section */}
+            <div className="space-y-4">
+              <h3 className="font-medium flex items-center gap-2">
+                <ImageIcon className="h-4 w-4" />
+                Image Generation
+              </h3>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="generateImages"
+                  checked={generateImages}
+                  onChange={(e) => setGenerateImages(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="generateImages">
+                  Generate images for this content
+                </Label>
+              </div>
+
+              {generateImages && (
+                <div className="space-y-4 pl-6 border-l-2 border-muted">
+                  <div className="space-y-2">
+                    <Label>Number of Images</Label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setImageCount(Math.max(1, imageCount - 1))
+                        }
+                        disabled={imageCount <= 1}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                      <span className="px-4 py-2 bg-muted rounded-md">
+                        {imageCount}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setImageCount(Math.min(5, imageCount + 1))
+                        }
+                        disabled={imageCount >= 5}
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
                     </div>
+                  </div>
+
+                  {Array.from({ length: imageCount }).map((_, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Label>Image {index + 1}</Label>
+                        {index > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeImageOption(index)}
+                            className="text-destructive"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Position in Content</Label>
+                        <Select
+                          value={imagePositions[index]?.toString() || "1"}
+                          onValueChange={(value) =>
+                            handleImagePositionChange(index, parseInt(value))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select position" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Beginning</SelectItem>
+                            <SelectItem value="2">
+                              After first paragraph
+                            </SelectItem>
+                            <SelectItem value="3">Middle</SelectItem>
+                            <SelectItem value="4">Before conclusion</SelectItem>
+                            <SelectItem value="5">End</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Custom Prompt (optional)</Label>
+                        <Textarea
+                          placeholder={`Professional ${contentType} image about "${topic}"`}
+                          value={imagePrompts[index] || ""}
+                          onChange={(e) =>
+                            handleImagePromptChange(index, e.target.value)
+                          }
+                          rows={2}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Leave blank for auto-generated prompt
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {imageCount < 5 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addImageOption}
+                      className="w-full"
+                    >
+                      Add Another Image
+                    </Button>
                   )}
                 </div>
+              )}
+            </div>
 
-                <div className="space-y-2">
-                  <Label
-                    className="flex items-center gap-2"
-                    htmlFor="seoCountry"
-                  >
-                    <Globe2 className="h-4 w-4" /> SEO Country Optimization
-                  </Label>
-                  <Select value={seoCountry} onValueChange={setSeoCountry}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country for SEO" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="global">
-                        Global (No specific country)
-                      </SelectItem>
-                      <SelectItem value="US">United States</SelectItem>
-                      <SelectItem value="UK">United Kingdom</SelectItem>
-                      <SelectItem value="Canada">Canada</SelectItem>
-                      <SelectItem value="Australia">Australia</SelectItem>
-                      <SelectItem value="India">India</SelectItem>
-                      <SelectItem value="Germany">Germany</SelectItem>
-                      <SelectItem value="France">France</SelectItem>
-                      <SelectItem value="Spain">Spain</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            <div className="mt-6 space-y-4">
+            {/* Action Buttons */}
+            <div className="space-y-4 pt-4">
               <Button
                 className="w-full"
                 onClick={generateContent}
@@ -637,25 +761,6 @@ const Editor = () => {
                   <>
                     <FileText className="mr-2 h-4 w-4" />
                     Generate Content
-                  </>
-                )}
-              </Button>
-
-              <Button
-                className="w-full"
-                variant="secondary"
-                onClick={generateImage}
-                disabled={isGenerating || !generatedContent.title}
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Image...
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="mr-2 h-4 w-4" />
-                    Generate Image
                   </>
                 )}
               </Button>
@@ -691,6 +796,7 @@ const Editor = () => {
           </CardContent>
         </Card>
 
+        {/* Preview Panel */}
         <Card className="lg:col-span-2">
           <CardContent className="pt-6">
             <Tabs defaultValue="preview">
@@ -701,13 +807,28 @@ const Editor = () => {
               </TabsList>
 
               <TabsContent value="preview" className="space-y-4">
-                {generatedContent.imageUrl && (
-                  <div className="mb-4">
-                    <img
-                      src={generatedContent.imageUrl}
-                      alt={generatedContent.title}
-                      className="w-full h-auto rounded-lg shadow-md object-cover"
-                    />
+                {generatedContent.images.length > 0 && (
+                  <div className="grid gap-4 mb-6">
+                    {generatedContent.images.map((image, index) => (
+                      <div
+                        key={index}
+                        className="border rounded-lg overflow-hidden"
+                      >
+                        <img
+                          src={image.url}
+                          alt={`Generated image ${index + 1}`}
+                          className="w-full h-auto object-cover"
+                        />
+                        <div className="p-3 bg-muted text-sm">
+                          <p className="font-medium">
+                            Image {index + 1} Prompt:
+                          </p>
+                          <p className="text-muted-foreground">
+                            {image.prompt}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 

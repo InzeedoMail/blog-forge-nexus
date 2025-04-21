@@ -1,370 +1,503 @@
-
-import React, { useState, useEffect, useTransition, useMemo, useCallback } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { Globe, Flag, AlertTriangle, Newspaper, Code2, Pin } from 'lucide-react';
-import { NewsList } from "@/components/news/NewsList";
-import { NewsSearch } from "@/components/news/NewsSearch";
-import { NewsFilters } from "@/components/news/NewsFilters";
-import { NewsLanguageSelector } from "@/components/news/NewsLanguageSelector";
-import { TelegramSettings } from "@/components/news/TelegramSettings";
-import { NewsCard } from "@/components/news/NewsCard";
-import { NewsItem, NewsFilters as NewsFiltersType, TelegramNotification } from "@/types/news";
-import { newsService } from "@/services/newsService";
-import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React, { useState, useEffect, useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Globe,
+  Flag,
+  AlertTriangle,
+  Newspaper,
+  Code2,
+  Languages,
+  ExternalLink,
+  Search,
+  Calendar,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-const ITEMS_PER_PAGE = 10;
+interface NewsItem {
+  title: string;
+  description: string;
+  link: string;
+  pubDate: string;
+  source: string;
+  imageUrl?: string;
+  author?: string;
+}
+
+const NewsCategories = {
+  srilanka: "Sri Lanka News",
+  world: "World News",
+  gaza: "Gaza Updates",
+  israel: "Israel News",
+  tech: "Technology",
+} as const;
+
+type NewsCategory = keyof typeof NewsCategories;
+
+const languageOptions = [
+  { value: "en", label: "English" },
+  { value: "ta", label: "Tamil" },
+  { value: "si", label: "Sinhala" },
+  { value: "ar", label: "Arabic" },
+  { value: "fr", label: "French" },
+  { value: "es", label: "Spanish" },
+];
+
+const sortOptions = [
+  { value: "publishedAt", label: "Newest First" },
+  { value: "relevancy", label: "Relevance" },
+  { value: "popularity", label: "Popularity" },
+];
+
+const pageSizeOptions = [10, 20, 30, 50];
 
 const News = () => {
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
-  const [isPending, startTransition] = useTransition();
-  
-  // State management
   const [selectedLanguage, setSelectedLanguage] = useState("en");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchKeywords, setSearchKeywords] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState("srilanka");
+  const [activeTab, setActiveTab] = useState<NewsCategory>("srilanka");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("publishedAt");
+  const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pinnedNews, setPinnedNews] = useState<NewsItem[]>([]);
-  const [filters, setFilters] = useState<NewsFiltersType>({
-    search: "",
-    categories: [],
-    sortBy: "date",
-    sortOrder: "desc"
-  });
+  const [dateFilter, setDateFilter] = useState("");
+  const { toast } = useToast();
 
-  // Load pinned news from localStorage on mount
-  useEffect(() => {
-    const loadPinnedNews = async () => {
-      try {
-        const pinned = await newsService.fetchPinnedNews();
-        setPinnedNews(pinned);
-      } catch (error) {
-        console.error("Error loading pinned news:", error);
-      }
-    };
-    
-    loadPinnedNews();
-  }, []);
-  
-  // Save pinned news to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('pinnedNews', JSON.stringify(pinnedNews));
-  }, [pinnedNews]);
-
-  // Reset pagination when tab changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab]);
-
-  // Fetch news data with React Query
-  const { data: srilankaNews, isLoading: loadingSL } = useQuery({
-    queryKey: ["news", "srilanka", currentPage, searchKeywords],
-    queryFn: () => newsService.fetchNews("sri+lanka", currentPage, ITEMS_PER_PAGE, searchKeywords.join(" ")),
-  });
-
-  const { data: worldNews, isLoading: loadingWorld } = useQuery({
-    queryKey: ["news", "world", currentPage, searchKeywords],
-    queryFn: () => newsService.fetchNews("world", currentPage, ITEMS_PER_PAGE, searchKeywords.join(" ")),
-  });
-
-  const { data: gazaNews, isLoading: loadingGaza } = useQuery({
-    queryKey: ["news", "gaza", currentPage, searchKeywords],
-    queryFn: () => newsService.fetchNews("gaza", currentPage, ITEMS_PER_PAGE, searchKeywords.join(" ")),
-  });
-
-  const { data: israelNews, isLoading: loadingIsrael } = useQuery({
-    queryKey: ["news", "israel", currentPage, searchKeywords],
-    queryFn: () => newsService.fetchNews("israel", currentPage, ITEMS_PER_PAGE, searchKeywords.join(" ")),
-  });
-
-  const { data: techNews, isLoading: loadingTech } = useQuery({
-    queryKey: ["news", "tech", currentPage, searchKeywords],
-    queryFn: () => newsService.fetchNews("technology", currentPage, ITEMS_PER_PAGE, searchKeywords.join(" ")),
-  });
-
-  // Helper function to translate text using Google Translate API
-  const translateText = async (text: string) => {
-    if (!text) return "";
-    
+  // Fetch news with enhanced parameters
+  const fetchNews = async (category: NewsCategory) => {
     try {
-      // Get preferred language from API or use selected language
-      const targetLanguage = selectedLanguage;
-      
-      // Check if we have a translation API key
-      const apiKey = import.meta.env.VITE_GOOGLE_TRANSLATE_API_KEY || localStorage.getItem('googleTranslateApiKey');
-      
-      if (!apiKey) {
-        toast({
-          title: "Translation API Key Missing",
-          description: "Please add a Google Translate API key in settings",
-          variant: "destructive",
-        });
-        return text;
+      const queryMap: Record<NewsCategory, string> = {
+        srilanka: "sri+lanka",
+        world: "world",
+        gaza: "gaza+palestine",
+        israel: "israel",
+        tech: "technology",
+      };
+
+      // Use search query if available, otherwise use category default
+      const q = searchQuery || queryMap[category];
+
+      let url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(
+        q
+      )}&pageSize=${pageSize}&page=${currentPage}&sortBy=${sortBy}`;
+
+      if (dateFilter) {
+        url += `&from=${dateFilter}`;
       }
-      
+
       const response = await fetch(
-        `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            q: text,
-            target: targetLanguage,
-            format: "text",
-          }),
-        }
+        `${url}&apiKey=ba8c5f0c548348eaab804059d3826820`
       );
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        console.error("Translation API error:", data.error);
-        toast({
-          title: "Translation Error",
-          description: data.error.message || "Failed to translate text",
-          variant: "destructive",
-        });
-        return text;
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      return data.data?.translations?.[0]?.translatedText || text;
+
+      const data = await response.json();
+      return {
+        articles: data.articles.map((article: any) => ({
+          title: article.title,
+          description: article.description || "No description available",
+          link: article.url,
+          pubDate: new Date(article.publishedAt).toLocaleDateString(),
+          source: article.source?.name || "Unknown source",
+          imageUrl: article.urlToImage,
+          author: article.author,
+        })),
+        totalResults: data.totalResults,
+      };
     } catch (error) {
-      console.error("Translation error:", error);
-      toast({
-        title: "Translation Error",
-        description: "Translation service is currently unavailable",
-        variant: "destructive",
-      });
-      return text;
+      console.error("Error fetching news:", error);
+      throw error;
     }
   };
 
-  // Pin/unpin news functionality
-  const handlePinNews = useCallback((item: NewsItem) => {
-    setPinnedNews(prev => {
-      const isPinned = prev.some(news => news.url === item.url);
-      
-      if (isPinned) {
-        toast({
-          title: "Article Unpinned",
-          description: "Article has been removed from pinned items",
-        });
-        return prev.filter(news => news.url !== item.url);
+  // Memoized translation function with caching
+  const translateText = useMemo(() => {
+    const cache = new Map<string, string>();
+
+    return async (text: string, targetLang: string): Promise<string> => {
+      if (!text.trim()) return text;
+
+      const cacheKey = `${targetLang}:${text}`;
+      if (cache.has(cacheKey)) {
+        return cache.get(cacheKey)!;
       }
-      
-      newsService.pinNewsItem({ ...item, pinned: true });
-      
-      toast({
-        title: "Article Pinned",
-        description: "Article has been added to pinned items",
-      });
-      return [...prev, { ...item, pinned: true }];
-    });
+
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const translated = `[${targetLang.toUpperCase()}] ${text}`;
+        cache.set(cacheKey, translated);
+        return translated;
+      } catch (error) {
+        console.error("Translation error:", error);
+        toast({
+          title: "Translation Error",
+          description: "Failed to translate the text. Please try again.",
+          variant: "destructive",
+        });
+        return text;
+      }
+    };
   }, [toast]);
 
-  // Handle search functionality
-  const handleSearch = useCallback((keywords: string[]) => {
-    startTransition(() => {
-      setSearchKeywords(keywords);
-      setCurrentPage(1);
-    });
-  }, []);
+  // Unified query for all news categories with search parameters
+  const {
+    data: newsData,
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      "news",
+      activeTab,
+      searchQuery,
+      sortBy,
+      pageSize,
+      currentPage,
+      dateFilter,
+    ],
+    queryFn: () => fetchNews(activeTab),
+    staleTime: 1000 * 60 * 5, // 5 minutes stale time
+  });
 
-  // Handle filter changes
-  const handleFiltersChange = useCallback((newFilters: NewsFiltersType) => {
-    setFilters(newFilters);
-    // Apply filters logic here
-  }, []);
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortBy, pageSize, dateFilter, activeTab]);
 
-  // Save Telegram notification settings
-  const handleTelegramSettings = useCallback(async (settings: TelegramNotification) => {
-    try {
-      localStorage.setItem('telegramNotificationSettings', JSON.stringify(settings));
-      
-      // Explain what Telegram settings do to the user
-      toast({
-        title: "Telegram Notifications Configured",
-        description: 
-          "You'll receive notifications when new articles match your selected keywords or categories. Make sure you've started a chat with your bot.",
-        duration: 5000,
-      });
-    } catch (error) {
-      console.error("Error saving Telegram settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save Telegram settings",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
+  // Handle search
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    refetch();
+  };
 
-  // Transform raw news data to NewsItem[] format
-  const processNewsData = useCallback((newsData: any): NewsItem[] => {
-    if (!newsData || !newsData.articles || !Array.isArray(newsData.articles)) {
-      return [];
-    }
-    return newsData.articles.map(newsService.transformNewsItem);
-  }, []);
-
-  // Memoize current news data based on active tab
-  const currentNews = useMemo(() => {
-    switch (activeTab) {
-      case "srilanka": return { 
-        data: processNewsData(srilankaNews), 
-        loading: loadingSL, 
-        total: srilankaNews?.totalResults || 0 
-      };
-      case "world": return { 
-        data: processNewsData(worldNews), 
-        loading: loadingWorld, 
-        total: worldNews?.totalResults || 0 
-      };
-      case "gaza": return { 
-        data: processNewsData(gazaNews), 
-        loading: loadingGaza, 
-        total: gazaNews?.totalResults || 0 
-      };
-      case "israel": return { 
-        data: processNewsData(israelNews), 
-        loading: loadingIsrael, 
-        total: israelNews?.totalResults || 0 
-      };
-      case "tech": return { 
-        data: processNewsData(techNews), 
-        loading: loadingTech, 
-        total: techNews?.totalResults || 0 
-      };
-      default: return { 
-        data: processNewsData(srilankaNews), 
-        loading: loadingSL, 
-        total: srilankaNews?.totalResults || 0 
-      };
-    }
-  }, [
-    activeTab, 
-    srilankaNews, loadingSL, 
-    worldNews, loadingWorld, 
-    gazaNews, loadingGaza, 
-    israelNews, loadingIsrael, 
-    techNews, loadingTech,
-    processNewsData
-  ]);
-
-  // Loading placeholder
-  if (loadingSL && loadingWorld && loadingGaza && loadingIsrael && loadingTech) {
-    return (
-      <div className="container mx-auto p-4 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <Skeleton className="h-12 w-48" />
-          <Skeleton className="h-10 w-32 mt-4 md:mt-0" />
-        </div>
-        <Skeleton className="h-12 w-full my-4" />
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(9)].map((_, i) => (
-            <div key={i} className="flex flex-col space-y-3">
-              <Skeleton className="h-48 w-full rounded-lg" />
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-2/3" />
-            </div>
-          ))}
-        </div>
-      </div>
+  const NewsCard = React.memo(({ item }: { item: NewsItem }) => {
+    const [translatedTitle, setTranslatedTitle] = useState(item.title);
+    const [translatedDescription, setTranslatedDescription] = useState(
+      item.description
     );
-  }
+    const [isTranslating, setIsTranslating] = useState(false);
 
-  return (
-    <div className="container mx-auto p-4 space-y-6 max-w-7xl">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/50 bg-clip-text text-transparent">
-            News Feed
-          </h1>
-          <NewsLanguageSelector
-            selectedLanguage={selectedLanguage}
-            onLanguageChange={setSelectedLanguage}
-          />
-        </div>
+    const handleTranslate = async () => {
+      if (selectedLanguage === "en") return;
 
-        <div className="grid gap-4 md:grid-cols-[2fr,1fr]">
-          <NewsSearch 
-            value={searchTerm} 
-            onChange={setSearchTerm} 
-            onSearch={handleSearch}
-          />
-          <div className="hidden md:block">
-            <TelegramSettings onSave={handleTelegramSettings} />
-          </div>
-        </div>
+      setIsTranslating(true);
+      try {
+        const [title, desc] = await Promise.all([
+          translateText(item.title, selectedLanguage),
+          translateText(item.description, selectedLanguage),
+        ]);
+        setTranslatedTitle(title);
+        setTranslatedDescription(desc);
+      } finally {
+        setIsTranslating(false);
+      }
+    };
 
-        <NewsFilters filters={filters} onFiltersChange={handleFiltersChange} />
+    useEffect(() => {
+      if (selectedLanguage !== "en") {
+        handleTranslate();
+      }
+    }, [selectedLanguage]);
 
-        {pinnedNews.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Pin className="h-5 w-5" /> Pinned News
-            </h2>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {pinnedNews.map((item, index) => (
-                <NewsCard
-                  key={`pinned-${index}`}
-                  item={item}
-                  onTranslate={translateText}
-                  selectedLanguage={selectedLanguage}
-                  onPin={handlePinNews}
-                />
-              ))}
-            </div>
+    return (
+      <Card className="mb-6 hover:shadow-lg transition-shadow">
+        {item.imageUrl && (
+          <div className="relative h-48 w-full">
+            <img
+              src={item.imageUrl}
+              alt={item.title}
+              className="w-full h-full object-cover rounded-t-lg"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
           </div>
         )}
+        <CardHeader>
+          <CardTitle className="text-lg line-clamp-2">
+            {translatedTitle}
+          </CardTitle>
+          <CardDescription className="flex flex-wrap items-center gap-2">
+            <span>{item.source}</span>
+            <span>•</span>
+            <span>{item.pubDate}</span>
+            {item.author && (
+              <>
+                <span>•</span>
+                <span>{item.author}</span>
+              </>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600 line-clamp-3">
+            {translatedDescription}
+          </p>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" asChild>
+            <a
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Read Full Story
+            </a>
+          </Button>
+          <Button
+            onClick={handleTranslate}
+            disabled={isTranslating || selectedLanguage === "en"}
+            variant="secondary"
+            className="flex items-center gap-2"
+          >
+            <Languages className="h-4 w-4" />
+            {isTranslating ? "Translating..." : "Translate"}
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  });
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-            <TabsTrigger value="srilanka" className="flex items-center gap-2">
-              <Flag className="h-4 w-4" />
-              <span className={isMobile ? "sr-only" : ""}>Sri Lanka</span>
-            </TabsTrigger>
-            <TabsTrigger value="world" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              <span className={isMobile ? "sr-only" : ""}>World</span>
-            </TabsTrigger>
-            <TabsTrigger value="gaza" className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span className={isMobile ? "sr-only" : ""}>Gaza</span>
-            </TabsTrigger>
-            <TabsTrigger value="israel" className="flex items-center gap-2">
-              <Newspaper className="h-4 w-4" />
-              <span className={isMobile ? "sr-only" : ""}>Israel</span>
-            </TabsTrigger>
-            <TabsTrigger value="tech" className="flex items-center gap-2">
-              <Code2 className="h-4 w-4" />
-              <span className={isMobile ? "sr-only" : ""}>Technology</span>
-            </TabsTrigger>
-          </TabsList>
+  const renderSkeleton = () => (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: pageSize }).map((_, index) => (
+        <Card key={index}>
+          <Skeleton className="h-48 w-full rounded-t-lg" />
+          <CardHeader>
+            <Skeleton className="h-6 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full mt-2" />
+            <Skeleton className="h-4 w-2/3 mt-2" />
+          </CardContent>
+          <CardFooter className="flex justify-between gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  );
 
-          <NewsList
-            category={activeTab}
-            news={currentNews.data}
-            isLoading={currentNews.loading || isPending}
-            onTranslate={translateText}
-            selectedLanguage={selectedLanguage}
-            onPinNews={handlePinNews}
-            currentPage={currentPage}
-            onPageChange={setCurrentPage}
-            totalPages={Math.max(1, Math.ceil(currentNews.total / ITEMS_PER_PAGE))}
-          />
-        </Tabs>
+  const totalPages = newsData ? Math.ceil(newsData.totalResults / pageSize) : 0;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Global News Feed
+          </h1>
+          <p className="text-muted-foreground">
+            Stay updated with the latest news from around the world
+          </p>
+        </div>
+        <div className="w-full md:w-48">
+          <Select
+            onValueChange={setSelectedLanguage}
+            defaultValue={selectedLanguage}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Select Language" />
+            </SelectTrigger>
+            <SelectContent>
+              {languageOptions.map((lang) => (
+                <SelectItem key={lang.value} value={lang.value}>
+                  {lang.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      
-      <div className="md:hidden mt-8">
-        <TelegramSettings onSave={handleTelegramSettings} />
+
+      {/* Search and Filters */}
+      <div className="mb-8 space-y-4">
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search news..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <Button type="submit">Search</Button>
+        </form>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Select onValueChange={setSortBy} value={sortBy}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={setPageSize} value={pageSize.toString()}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Items per page" />
+            </SelectTrigger>
+            <SelectContent>
+              {pageSizeOptions.map((size) => (
+                <SelectItem key={size} value={size.toString()}>
+                  {size} per page
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="relative flex-1 sm:max-w-[200px]">
+            <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="date"
+              placeholder="Filter by date"
+              className="pl-10"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
+
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as NewsCategory)}
+        className="w-full"
+      >
+        <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 mb-6">
+          {Object.entries(NewsCategories).map(([key, label]) => (
+            <TabsTrigger
+              key={key}
+              value={key}
+              className="flex items-center gap-2"
+            >
+              {key === "srilanka" && <Flag className="h-4 w-4" />}
+              {key === "world" && <Globe className="h-4 w-4" />}
+              {key === "gaza" && <AlertTriangle className="h-4 w-4" />}
+              {key === "israel" && <Newspaper className="h-4 w-4" />}
+              {key === "tech" && <Code2 className="h-4 w-4" />}
+              <span className="truncate">{label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {Object.keys(NewsCategories).map((category) => (
+          <TabsContent key={category} value={category}>
+            {isLoading ? (
+              renderSkeleton()
+            ) : newsData?.articles?.length ? (
+              <>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {newsData.articles.map((item: NewsItem, index: number) => (
+                    <NewsCard key={index} item={item} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-8 gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }).map(
+                        (_, i) => {
+                          // Show pages around current page
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={
+                                currentPage === pageNum ? "default" : "outline"
+                              }
+                              onClick={() => setCurrentPage(pageNum)}
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        }
+                      )}
+                      {totalPages > 5 && currentPage < totalPages - 2 && (
+                        <>
+                          <span className="px-2">...</span>
+                          <Button
+                            variant="outline"
+                            onClick={() => setCurrentPage(totalPages)}
+                          >
+                            {totalPages}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Newspaper className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No news found</h3>
+                <p className="text-sm text-muted-foreground">
+                  We couldn't find any news for this category. Try adjusting
+                  your search or filters.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };

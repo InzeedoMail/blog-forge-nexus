@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -9,6 +8,7 @@ interface Credentials {
   bloggerBlogId?: string;
   leonardoApiKey?: string;
   geminiApiKey?: string;
+  newsApikey?: string;
 }
 
 interface CredentialsContextType {
@@ -17,9 +17,13 @@ interface CredentialsContextType {
   clearCredentials: () => void;
 }
 
-const CredentialsContext = createContext<CredentialsContextType | undefined>(undefined);
+const CredentialsContext = createContext<CredentialsContextType | undefined>(
+  undefined
+);
 
-export const CredentialsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const CredentialsProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [credentials, setCredentials] = useState<Credentials>({});
   const { toast } = useToast();
 
@@ -41,10 +45,10 @@ export const CredentialsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const setCredential = (key: keyof Credentials, value: string) => {
     setCredentials((prev) => {
       const updated = { ...prev, [key]: value };
-      
+
       // In a real application, you would encrypt this data
       localStorage.setItem("credentials", JSON.stringify(updated));
-      
+
       return updated;
     });
 
