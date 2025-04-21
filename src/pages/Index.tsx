@@ -85,22 +85,22 @@ const Index = () => {
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* Header */}
       <LandingHeader />
-      
+
       {/* Hero Section */}
       <HeroSection />
-      
+
       {/* Features Section */}
       <FeaturesSection />
-      
+
       {/* Pricing Section */}
       <PricingSection />
-      
+
       {/* About Us Section */}
       <AboutSection />
-      
+
       {/* Contact Section */}
       <ContactSection />
-      
+
       {/* Footer */}
       <LandingFooter />
     </div>
@@ -158,9 +158,11 @@ const HeroSection = () => {
           </motion.p>
           
           <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 mt-8">
-            <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-8">
-              Try Free <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <Link to="/dashboard">
+              <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white px-8">
+                Try Free <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
             <Button variant="outline" size="lg" className="group">
               Explore Features 
               <MoveRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
