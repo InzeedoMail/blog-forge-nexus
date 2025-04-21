@@ -9,9 +9,9 @@ interface GoogleLoginProps {
 const GoogleLogin: React.FC<GoogleLoginProps> = ({ onSuccess, onError }) => {
   const { loginWithGoogle } = useAuth();
 
-  const handleCredentialResponse = async (response: any) => {
+  const handleCredentialResponse = async () => {
     try {
-      await loginWithGoogle(response);
+      loginWithGoogle();
       onSuccess?.();
     } catch (error) {
       console.error("Google login error:", error);
@@ -19,15 +19,8 @@ const GoogleLogin: React.FC<GoogleLoginProps> = ({ onSuccess, onError }) => {
     }
   };
 
-  return (
-    <div id="g_id_onload"
-         data-client_id="your-google-client-id"
-         data-context="signin"
-         data-ux_mode="popup"
-         data-callback="handleCredentialResponse"
-         data-auto_prompt="false">
-    </div>
-  );
+  // Dummy implementation - not actually used
+  return null;
 };
 
 export default GoogleLogin;

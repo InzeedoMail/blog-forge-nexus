@@ -25,19 +25,17 @@ import { Settings, LogOut, CreditCard, User, ChevronDown } from "lucide-react";
 
 const UserAccountNav = () => {
   const { user, logout } = useAuth();
-  const { subscription, createCustomerPortalSession } = useSubscription();
+  const { subscription } = useSubscription();
   const navigate = useNavigate();
 
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    logout();
     navigate("/");
   };
 
-  const handleManageSubscription = async () => {
-    const portalUrl = await createCustomerPortalSession();
-    if (portalUrl) {
-      window.location.href = portalUrl;
-    }
+  const handleManageSubscription = () => {
+    // Just redirect to settings since subscriptions are disabled
+    navigate("/settings");
   };
 
   return (
@@ -47,7 +45,7 @@ const UserAccountNav = () => {
           <Avatar className="h-8 w-8">
             <AvatarImage src={user?.avatar_url} alt={user?.name || ""} />
             <AvatarFallback>
-              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+              {user?.name ? user.name.charAt(0).toUpperCase() : "G"}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -55,7 +53,7 @@ const UserAccountNav = () => {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+            <p className="text-sm font-medium leading-none">{user?.name || "Guest User"}</p>
             <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
           </div>
         </DropdownMenuLabel>

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useLocation, NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,7 +69,6 @@ const Sidebar = () => {
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
-  // Check if route is active
   const isRouteActive = (href: string) => {
     if (href === '/') {
       return location.pathname === href;
@@ -78,7 +76,6 @@ const Sidebar = () => {
     return location.pathname.startsWith(href);
   };
 
-  // Filter navigation items based on search
   const filterItems = (items: typeof mainNavigation) => {
     if (!searchQuery) return items;
     return items.filter(item => 
@@ -192,12 +189,12 @@ const Sidebar = () => {
                 {user?.avatar_url ? (
                   <AvatarImage src={user.avatar_url} alt={user?.name || "User"} />
                 ) : (
-                  <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
+                  <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || "G"}</AvatarFallback>
                 )}
               </Avatar>
               <div className="flex flex-col">
-                <span className="text-sm font-medium">{user?.name || "User"}</span>
-                <span className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.email || ""}</span>
+                <span className="text-sm font-medium">{user?.name || "Guest User"}</span>
+                <span className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.email || "guest@example.com"}</span>
               </div>
             </div>
             <Button

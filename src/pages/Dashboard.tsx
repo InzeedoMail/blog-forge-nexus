@@ -84,7 +84,7 @@ const Dashboard = () => {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}</h1>
+        <h1 className="text-3xl font-bold mb-2">Welcome, {user?.name || "Guest"}</h1>
         <p className="text-muted-foreground">
           Generate content, create images, and publish to your blog all in one place.
         </p>
