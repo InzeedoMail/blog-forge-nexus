@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Subscription {
   isSubscribed: boolean;
@@ -17,14 +18,33 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [loadingSubscription] = useState(false);
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
+  const { user } = useAuth();
   
   // Default subscription state
-  const [subscription] = useState<Subscription>({
+  const [subscription, setSubscription] = useState<Subscription>({
     isSubscribed: false,
     plan: null,
     status: null,
   });
+
+  // Check if the user has a subscription (for demo purposes)
+  useEffect(() => {
+    if (user) {
+      setLoadingSubscription(true);
+      
+      // Simulate API call
+      setTimeout(() => {
+        // For demo purposes, just set a default state
+        setSubscription({
+          isSubscribed: false,
+          plan: null,
+          status: null
+        });
+        setLoadingSubscription(false);
+      }, 1000);
+    }
+  }, [user]);
 
   const createCheckoutSession = async (priceId: string): Promise<string | null> => {
     console.log("Creating checkout session (disabled)", priceId);

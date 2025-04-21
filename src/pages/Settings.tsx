@@ -62,6 +62,7 @@ const Settings = () => {
     bloggerBlogId: credentials.bloggerBlogId || "",
     leonardoApiKey: credentials.leonardoApiKey || "",
     geminiApiKey: credentials.geminiApiKey || "",
+    newsApiKey: credentials.newsApiKey || "",
     zapierWebhookUrl: "",
     perplexityApiKey: "",
     wordpressApiUrl: "",
@@ -203,6 +204,7 @@ const Settings = () => {
         setCredential("openaiApiKey", formState.openaiApiKey);
         setCredential("geminiApiKey", formState.geminiApiKey);
         setCredential("leonardoApiKey", formState.leonardoApiKey);
+        setCredential("newsApiKey", formState.newsApiKey);
         break;
       case "google":
         setCredential("googleApiKey", formState.googleApiKey);
@@ -210,7 +212,6 @@ const Settings = () => {
         setCredential("bloggerBlogId", formState.bloggerBlogId);
         break;
       case "integration":
-        // Save integration settings to localStorage
         localStorage.setItem(
           "contentSettings",
           JSON.stringify({
@@ -229,7 +230,6 @@ const Settings = () => {
   };
 
   const connectApp = (appId: string) => {
-    // This would be expanded with actual connection logic
     toast({
       title: "Connect app",
       description: `Connection to ${appId} will be implemented soon.`,
@@ -296,6 +296,21 @@ const Settings = () => {
                   value={formState.leonardoApiKey}
                   onChange={handleChange}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newsApiKey">News API Key</Label>
+                <Input
+                  id="newsApiKey"
+                  name="newsApiKey"
+                  type="password"
+                  placeholder="YOUR_NEWS_API_KEY"
+                  value={formState.newsApiKey}
+                  onChange={handleChange}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from <a href="https://newsapi.org/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">NewsAPI.org</a>
+                </p>
               </div>
 
               <div className="flex items-center mt-4 p-3 rounded-md bg-muted/50">

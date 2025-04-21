@@ -5,6 +5,7 @@ export interface APICredentials {
   deepseekApiKey?: string;
   googleApiKey?: string;
   leonardoApiKey?: string;
+  newsApiKey?: string; // Added News API Key
 }
 
 export interface ApiKeyStatus {

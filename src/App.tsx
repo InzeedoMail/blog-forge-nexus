@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import AppLayout from "./components/layout/AppLayout";
 import Index from "./pages/Index";
@@ -11,11 +11,14 @@ import Blogger from "./pages/Blogger";
 import GoogleSheets from "./pages/GoogleSheets";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import ArticleParaphraser from "./pages/ArticleParaphraser";
 import ImageTextExtractor from "./pages/ImageTextExtractor";
 import FileAnalyzer from "./pages/FileAnalyzer";
 import CodeReviewer from "./pages/CodeReviewer";
 import News from "./pages/News";
+import AuthGuard from "./components/auth/AuthGuard";
 
 import { ApiKeyProvider } from "@/contexts/ApiKeyContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -43,82 +46,108 @@ function App() {
         <ThemeProvider>
           <ApiKeyProvider>
             <CredentialsProvider>
-              <AuthProvider>
-                <SubscriptionProvider>
-                  <Router>
+              <Router>
+                <AuthProvider>
+                  <SubscriptionProvider>
                     <Routes>
                       {/* Public routes */}
                       <Route path="/" element={<Index />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
 
-                      {/* Dashboard and other routes */}
+                      {/* Protected routes */}
                       <Route path="dashboard" element={
-                        <AppLayout>
-                          <Dashboard />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <Dashboard />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="editor" element={
-                        <AppLayout>
-                          <Editor />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <Editor />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="article-paraphraser" element={
-                        <AppLayout>
-                          <ArticleParaphraser />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <ArticleParaphraser />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="image-generator" element={
-                        <AppLayout>
-                          <ImageGenerator />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <ImageGenerator />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="blogger" element={
-                        <AppLayout>
-                          <Blogger />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <Blogger />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="google-sheets" element={
-                        <AppLayout>
-                          <GoogleSheets />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <GoogleSheets />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="history" element={
-                        <AppLayout>
-                          <History />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <History />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="settings" element={
-                        <AppLayout>
-                          <Settings />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <Settings />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="image-text-extractor" element={
-                        <AppLayout>
-                          <ImageTextExtractor />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <ImageTextExtractor />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="file-analyzer" element={
-                        <AppLayout>
-                          <FileAnalyzer />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <FileAnalyzer />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="code-reviewer" element={
-                        <AppLayout>
-                          <CodeReviewer />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <CodeReviewer />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
                       <Route path="news" element={
-                        <AppLayout>
-                          <News />
-                        </AppLayout>
+                        <AuthGuard>
+                          <AppLayout>
+                            <News />
+                          </AppLayout>
+                        </AuthGuard>
                       } />
 
                       {/* Catch-all route */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     <Toaster />
-                  </Router>
-                </SubscriptionProvider>
-              </AuthProvider>
+                  </SubscriptionProvider>
+                </AuthProvider>
+              </Router>
             </CredentialsProvider>
           </ApiKeyProvider>
         </ThemeProvider>

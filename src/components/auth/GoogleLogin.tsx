@@ -11,7 +11,7 @@ const GoogleLogin: React.FC<GoogleLoginProps> = ({ onSuccess, onError }) => {
 
   const handleCredentialResponse = async () => {
     try {
-      loginWithGoogle();
+      await loginWithGoogle();
       onSuccess?.();
     } catch (error) {
       console.error("Google login error:", error);

@@ -1,10 +1,10 @@
+
 import React, { useState } from "react";
 import { useLocation, NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 import {
-  SidebarProvider,
   Sidebar as SidebarContainer,
   SidebarContent,
   SidebarHeader,
@@ -88,128 +88,126 @@ const Sidebar = () => {
   const filteredAccountNav = filterItems(accountNavigation);
 
   return (
-    <SidebarProvider>
-      <SidebarContainer variant="floating" collapsible="icon" className="border-r">
-        <SidebarHeader className="p-4">
-          <div className="flex items-center gap-2">
-            <div className="rounded-md bg-primary p-1 flex items-center justify-center">
-              <span className="font-bold text-primary-foreground">BF</span>
-            </div>
-            <h2 className="font-semibold text-xl">{APP_NAME}</h2>
+    <SidebarContainer variant="floating" collapsible="icon" className="border-r">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-2">
+          <div className="rounded-md bg-primary p-1 flex items-center justify-center">
+            <span className="font-bold text-primary-foreground">BF</span>
           </div>
-          <div className="pt-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="h-9 pl-8"
-              />
-            </div>
+          <h2 className="font-semibold text-xl">{APP_NAME}</h2>
+        </div>
+        <div className="pt-4">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="h-9 pl-8"
+            />
           </div>
-        </SidebarHeader>
+        </div>
+      </SidebarHeader>
 
-        <SidebarContent className="p-2">
-          <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {filteredMainNav.map((item) => (
-                  <SidebarMenuItem key={item.name}>
-                    <SidebarMenuButton
-                      tooltip={item.name}
-                      asChild
-                      isActive={isRouteActive(item.href)}
-                    >
-                      <NavLink to={item.href}>
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.name}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-          
-          <Separator className="my-4" />
-          
-          <SidebarGroup>
-            <SidebarGroupLabel>Tools</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {filteredToolNav.map((item) => (
-                  <SidebarMenuItem key={item.name}>
-                    <SidebarMenuButton
-                      tooltip={item.name}
-                      asChild
-                      isActive={isRouteActive(item.href)}
-                    >
-                      <NavLink to={item.href}>
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.name}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-          
-          <Separator className="my-4" />
-          
-          <SidebarGroup>
-            <SidebarGroupLabel>Account</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {filteredAccountNav.map((item) => (
-                  <SidebarMenuItem key={item.name}>
-                    <SidebarMenuButton
-                      tooltip={item.name}
-                      asChild
-                      isActive={isRouteActive(item.href)}
-                    >
-                      <NavLink to={item.href}>
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.name}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
+      <SidebarContent className="p-2">
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {filteredMainNav.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton
+                    tooltip={item.name}
+                    asChild
+                    isActive={isRouteActive(item.href)}
+                  >
+                    <NavLink to={item.href}>
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.name}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        <Separator className="my-4" />
+        
+        <SidebarGroup>
+          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {filteredToolNav.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton
+                    tooltip={item.name}
+                    asChild
+                    isActive={isRouteActive(item.href)}
+                  >
+                    <NavLink to={item.href}>
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.name}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        <Separator className="my-4" />
+        
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {filteredAccountNav.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton
+                    tooltip={item.name}
+                    asChild
+                    isActive={isRouteActive(item.href)}
+                  >
+                    <NavLink to={item.href}>
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.name}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
 
-        <SidebarFooter className="border-t p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Avatar>
-                {user?.avatar_url ? (
-                  <AvatarImage src={user.avatar_url} alt={user?.name || "User"} />
-                ) : (
-                  <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || "G"}</AvatarFallback>
-                )}
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium">{user?.name || "Guest User"}</span>
-                <span className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.email || "guest@example.com"}</span>
-              </div>
+      <SidebarFooter className="border-t p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar>
+              {user?.avatar_url ? (
+                <AvatarImage src={user.avatar_url} alt={user?.name || "User"} />
+              ) : (
+                <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || "G"}</AvatarFallback>
+              )}
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{user?.name || "Guest User"}</span>
+              <span className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.email || "guest@example.com"}</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={logout}
-              title="Sign out"
-              className="hover:bg-red-100 hover:text-red-600"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
-        </SidebarFooter>
-      </SidebarContainer>
-    </SidebarProvider>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={logout}
+            title="Sign out"
+            className="hover:bg-red-100 hover:text-red-600"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </SidebarFooter>
+    </SidebarContainer>
   );
 };
 
