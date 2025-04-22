@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useLocation, NavLink } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,6 +51,7 @@ const Sidebar = () => {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Editor", href: "/editor", icon: FileText },
     { name: "News", href: "/news", icon: Newspaper },
+    { name: "Facebook Posts", href: "/facebook-posts", icon: 'facebook' },
     { name: "Image Generator", href: "/image-generator", icon: Image },
   ];
 
@@ -87,6 +87,17 @@ const Sidebar = () => {
   const filteredToolNav = filterItems(toolNavigation);
   const filteredAccountNav = filterItems(accountNavigation);
 
+  // Helper to load correct Lucide icon for Facebook (since not imported by default)
+  const getIconComponent = (name) => {
+    if (name === 'facebook') {
+      const { Facebook } = require("lucide-react");
+      return Facebook;
+    }
+    // Default find in lucide-react
+    return mainNavigation.concat(toolNavigation, accountNavigation)
+      .find(item => item.name === name)?.icon || Home;
+  };
+
   return (
     <SidebarContainer variant="floating" collapsible="icon" className="border-r">
       <SidebarHeader className="p-4">
@@ -114,7 +125,7 @@ const Sidebar = () => {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {filteredMainNav.map((item) => (
+              {mainNavigation.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton
                     tooltip={item.name}
@@ -122,7 +133,14 @@ const Sidebar = () => {
                     isActive={isRouteActive(item.href)}
                   >
                     <NavLink to={item.href}>
-                      <item.icon className="h-5 w-5" />
+                      {item.name === 'Facebook Posts' ? (
+                        (() => {
+                          const { Facebook } = require("lucide-react");
+                          return <Facebook className="h-5 w-5" />;
+                        })()
+                      ) : (
+                        <item.icon className="h-5 w-5" />
+                      )}
                       <span>{item.name}</span>
                     </NavLink>
                   </SidebarMenuButton>

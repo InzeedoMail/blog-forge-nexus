@@ -1,11 +1,12 @@
-
 export interface APICredentials {
   openaiApiKey?: string;
   geminiApiKey?: string;
   deepseekApiKey?: string;
   googleApiKey?: string;
   leonardoApiKey?: string;
-  newsApiKey?: string; // Added News API Key
+  newsApiKey?: string; // keep for consistency if used elsewhere
+  facebookApiKey?: string; // add for settings
+  facebookPageIds?: string;
 }
 
 export interface ApiKeyStatus {

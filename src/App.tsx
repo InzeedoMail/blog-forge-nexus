@@ -22,6 +22,7 @@ import ImageTextExtractor from "./pages/ImageTextExtractor";
 import FileAnalyzer from "./pages/FileAnalyzer";
 import CodeReviewer from "./pages/CodeReviewer";
 import News from "./pages/News";
+import FacebookPosts from "./pages/FacebookPosts";
 import AuthGuard from "./components/auth/AuthGuard";
 
 import { ApiKeyProvider } from "@/contexts/ApiKeyContext";
@@ -59,6 +60,14 @@ function App() {
                       <Route path="/" element={<Index />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/signup" element={<Signup />} />
+                      <Route path="/facebook-posts" element={<FacebookPosts />} />
+
+                      {/* NEWS should also be public */}
+                      <Route path="news" element={
+                        <AppLayout>
+                          <News />
+                        </AppLayout>
+                      } />
 
                       {/* Protected routes */}
                       <Route
@@ -167,16 +176,6 @@ function App() {
                           <AuthGuard>
                             <AppLayout>
                               <CodeReviewer />
-                            </AppLayout>
-                          </AuthGuard>
-                        }
-                      />
-                      <Route
-                        path="news"
-                        element={
-                          <AuthGuard>
-                            <AppLayout>
-                              <News />
                             </AppLayout>
                           </AuthGuard>
                         }

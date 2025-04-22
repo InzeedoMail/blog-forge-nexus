@@ -9,6 +9,8 @@ interface Credentials {
   leonardoApiKey?: string;
   geminiApiKey?: string;
   newsApikey?: string;
+  facebookApiKey?: string;
+  facebookPageIds?: string;
 }
 
 interface CredentialsContextType {
