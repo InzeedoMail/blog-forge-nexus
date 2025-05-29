@@ -70,12 +70,11 @@ export class GoogleServiceFactory {
     private bloggerBlogId?: string,
   ) {}
 
-  getGoogleSheetsService() {
+  async getGoogleSheetsService() {
     if (this.googleApiKey && this.googleSheetId) {
       try {
-        // Since we're using dynamic imports for GoogleSheetsService to avoid circular dependencies,
-        // we need to make sure it's properly imported
-        const { GoogleSheetsService } = require("./googleSheetsService");
+        // Use dynamic import instead of require
+        const { GoogleSheetsService } = await import("./googleSheetsService");
         return new GoogleSheetsService(this.googleApiKey, this.googleSheetId);
       } catch (error) {
         console.error("Error initializing Google Sheets service:", error);

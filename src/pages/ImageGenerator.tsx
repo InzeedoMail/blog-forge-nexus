@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useCredentials } from "@/contexts/CredentialsContext";
@@ -46,7 +45,13 @@ const ImageGenerator = () => {
       const aiFactory = new AIServiceFactory(credentials.openaiApiKey, credentials.geminiApiKey);
       const imageService = aiFactory.getImageGenerationService();
       
-      const imageUrl = await imageService.generateImage(prompt);
+      const imageUrl = await imageService.generateImage(prompt, {
+        size: "1024x1024",
+        n: 1,
+        style: "photorealistic",
+        lighting: "soft lighting",
+        detail: "highly detailed"
+      });
       
       setGeneratedImages([imageUrl, ...generatedImages]);
       
