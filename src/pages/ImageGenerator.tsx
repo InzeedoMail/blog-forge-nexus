@@ -43,7 +43,7 @@ const ImageGenerator = () => {
     setIsGenerating(true);
     
     try {
-      const aiFactory = new AIServiceFactory(credentials.openaiApiKey);
+      const aiFactory = new AIServiceFactory(credentials.openaiApiKey, credentials.geminiApiKey);
       const imageService = aiFactory.getImageGenerationService();
       
       const imageUrl = await imageService.generateImage(prompt);

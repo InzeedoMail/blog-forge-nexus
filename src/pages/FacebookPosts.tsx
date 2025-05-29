@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { facebook } from "lucide-react";
+import { Facebook } from "lucide-react";
 import { useCredentials } from "@/contexts/CredentialsContext";
 
 const getAccessToken = (credentials) => credentials.facebookApiKey || '';
@@ -73,7 +73,7 @@ const FacebookPosts: React.FC = () => {
           <Card key={post.id || idx}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <facebook className="h-5 w-5 text-blue-600" />
+                <Facebook className="h-5 w-5 text-blue-600" />
                 <span>Page ID: {post.pageId}</span>
               </CardTitle>
             </CardHeader>

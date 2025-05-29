@@ -1,3 +1,4 @@
+
 // src/components/news/NewsCard.jsx
 import React, { useState } from "react";
 import {
@@ -55,8 +56,8 @@ export const NewsCard = ({ item, onTranslate, selectedLanguage, onPin }) => {
             alt={item.title}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src =
-                "https://via.placeholder.com/600x400?text=No+Image";
+              const target = e.target as HTMLImageElement;
+              target.src = "https://via.placeholder.com/600x400?text=No+Image";
             }}
           />
         </div>

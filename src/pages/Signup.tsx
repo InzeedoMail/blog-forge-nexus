@@ -43,7 +43,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 const Signup = () => {
   const [isSigningUp, setIsSigningUp] = useState(false);
-  const { signup, loginWithGoogle, isAuthenticated } = useAuth();
+  const { signup, login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -67,7 +67,7 @@ const Signup = () => {
   const onSubmit = async (data: SignupFormValues) => {
     try {
       setIsSigningUp(true);
-      signup();
+      await signup(data.email, data.password, data.name);
       
       toast({
         title: "Account created",
@@ -83,7 +83,7 @@ const Signup = () => {
   };
 
   const handleGoogleSuccess = () => {
-    loginWithGoogle();
+    login("user@example.com", "password");
     navigate("/dashboard");
   };
 

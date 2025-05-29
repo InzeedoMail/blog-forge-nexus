@@ -361,7 +361,7 @@ const News = () => {
             </SelectContent>
           </Select>
 
-          <Select onValueChange={setPageSize} value={pageSize.toString()}>
+          <Select onValueChange={(value) => setPageSize(Number(value))} value={pageSize.toString()}>
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Items per page" />
             </SelectTrigger>
